@@ -28,10 +28,11 @@ export default function CameraCapture() {
   const [email, setEmail] = useState('')
   const [referenceFile, setReferenceFile] = useState<File | null>(null)
   const [status, setStatus] = useState<string | null>(null)
-  const [prompt, setPrompt] = useState<string>(`The subject sprints forward from a frozen stance, bursting into a full run across a lush green football pitch. The camera tracks dynamically from behind, pushing forward at speed as the subject charges toward goal. The subject strikes the ball clean — it flies into the back of the net. The crowd erupts. Stadium floodlights blaze overhead. Cinematic live-action, handheld tracking camera, motion blur on legs, roaring stadium atmosphere.`)
+  const [prompt, setPrompt] = useState<string>(`Starting from the reference image as starting frame, the subject slowly comes to life on a football pitch. He dribbles forward at a controlled pace, weaving through two opposing defenders who challenge him closely. The movement is deliberate and grounded — no superhuman speed, just natural athletic motion. He shifts his weight, fakes left, beats the last defender, and slots the ball into the bottom corner of the net. The goalkeeper dives but can't reach it. The stadium crowd cheers in the background. Photorealistic, shot on cinema camera, natural stadium floodlight lighting, shallow depth of field on subject, broadcast TV football aesthetic, slight motion blur on the ball.`)
 
   async function submitJob() {
     if (!photo) return alert('take a photo first')
+    if (!email) return alert('enter your email')
     setStatus('Uploading selfie...')
 
     // Upload selfie base64 to server which will upload to Supabase
@@ -43,50 +44,51 @@ export default function CameraCapture() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename: selfieFilename, b64: b64, contentType: selfieBlob.type })
     })
-  const uploadData = await uploadResp.json()
-  if (!uploadData?.ok) return setStatus('Failed to upload selfie')
-  setStatus('Selfie uploaded')
-  const imageUrl = uploadData.publicUrl
+    const uploadData = await uploadResp.json()
+    if (!uploadData?.ok) return setStatus('Failed to upload selfie')
+    setStatus('Selfie uploaded')
+    const imageUrl = uploadData.publicUrl
 
-    // If reference video provided, upload similarly (TODO)
-    let referenceUrl = null
-    if (referenceFile) {
-      setStatus('Uploading reference video...')
-      // For simplicity, the same flow would apply
-      const refFilename = `ref-${Date.now()}-${referenceFile.name}`
-  const refBuffer = await referenceFile.arrayBuffer()
-  const refB64 = Buffer.from(refBuffer).toString('base64')
-  const refResp = await fetch('/api/upload-to-supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: refFilename, b64: refB64, contentType: referenceFile.type }) })
-  const refData = await refResp.json()
-  if (refData.ok) referenceUrl = refData.publicUrl
-      setStatus('Reference uploaded')
-    }
-
-    setStatus('Creating Replicate job...')
-  const createResp = await fetch('/api/create-job', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, prompt }) })
+    setStatus('Starting Runway job...')
+    // Use async create endpoint so browser doesn't block
+    const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, prompt, duration: 5 }) })
     const createData = await createResp.json()
-    // createData should contain job info and eventually a video public id or url
-    setStatus('Job started — polling for result (this may take a while)')
+    if (!createData?.ok || !createData?.id) return setStatus('Failed to start job: ' + (createData?.error || JSON.stringify(createData)))
+    const id = createData.id
+    setStatus('Job started, polling status...')
 
-    // Expect createData to return cloudinaryPublicId after server uploads result to Cloudinary
-    const resultVideoPublicId = createData?.cloudinaryPublicId
-
-    if (!resultVideoPublicId) {
-      setStatus('No result from Replicate yet — please check server logs')
-      return
+    // Poll status endpoint until succeeded
+    let finalStatus = null
+    for (;;) {
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, 3000))
+      // eslint-disable-next-line no-await-in-loop
+      const sResp = await fetch(`/api/prediction-status?id=${encodeURIComponent(id)}`)
+      const s = await sResp.json()
+      finalStatus = s.status || s.state || s
+      // Try to show logs progress
+      if (s.logs) setStatus(`Processing — ${s.status || ''} — ${s.logs.split('\n').slice(-2).join(' | ')}`)
+      else setStatus(`Processing — ${s.status || ''}`)
+      if (s.status === 'succeeded' || s.state === 'succeeded') break
+      if (s.status === 'failed' || s.state === 'failed') return setStatus('Job failed')
     }
 
-    setStatus('Creating Cloudinary overlay URL...')
-    const logoPublicId = process.env.NEXT_PUBLIC_CLOUDINARY_LOGO_ID || 'logo'
-    const procResp = await fetch('/api/process-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoPublicId: resultVideoPublicId, logoPublicId }) })
+    setStatus('Finalizing prediction and uploading video...')
+    const finResp = await fetch('/api/finalize-prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    const fin = await finResp.json()
+    if (!fin?.ok || !fin?.publicId) return setStatus('Finalize failed: ' + JSON.stringify(fin))
+
+    setStatus('Creating overlay URL...')
+    const logoPublicId = process.env.NEXT_PUBLIC_CLOUDINARY_LOGO_ID || 'Icon_uu7a2w'
+    const procResp = await fetch('/api/process-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoPublicId: fin.publicId, logoPublicId }) })
     const procData = await procResp.json()
-    if (!procData.url) return setStatus('Failed to process video')
+    if (!procData?.url) return setStatus('Failed to create overlay URL')
 
     setStatus('Sending email...')
     const emailResp = await fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: email, videoUrl: procData.url }) })
     const emailData = await emailResp.json()
-    if (emailData.ok) setStatus('Email sent!')
-    else setStatus('Email failed')
+    if (emailData?.ok) setStatus('Email sent! Check your inbox (or spam).')
+    else setStatus('Email failed: ' + JSON.stringify(emailData))
   }
 
   return (
@@ -111,7 +113,13 @@ export default function CameraCapture() {
 
         <div>
           <label>Your email</label>
-          <input className="block border p-2 rounded w-full" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+          <input
+            className="block border p-2 rounded w-full"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitJob() }}
+            placeholder="you@example.com"
+          />
         </div>
 
         <div>
