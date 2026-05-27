@@ -28,6 +28,7 @@ export default function CameraCapture() {
   const [email, setEmail] = useState('')
   const [referenceFile, setReferenceFile] = useState<File | null>(null)
   const [status, setStatus] = useState<string | null>(null)
+  const [prompt, setPrompt] = useState<string>(`The subject sprints forward from a frozen stance, bursting into a full run across a lush green football pitch. The camera tracks dynamically from behind, pushing forward at speed as the subject charges toward goal. The subject strikes the ball clean — it flies into the back of the net. The crowd erupts. Stadium floodlights blaze overhead. Cinematic live-action, handheld tracking camera, motion blur on legs, roaring stadium atmosphere.`)
 
   async function submitJob() {
     if (!photo) return alert('take a photo first')
@@ -42,9 +43,10 @@ export default function CameraCapture() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename: selfieFilename, b64: b64, contentType: selfieBlob.type })
     })
-    const uploadData = await uploadResp.json()
-    if (!uploadData?.ok) return setStatus('Failed to upload selfie')
-    setStatus('Selfie uploaded')
+  const uploadData = await uploadResp.json()
+  if (!uploadData?.ok) return setStatus('Failed to upload selfie')
+  setStatus('Selfie uploaded')
+  const imageUrl = uploadData.publicUrl
 
     // If reference video provided, upload similarly (TODO)
     let referenceUrl = null
@@ -61,7 +63,7 @@ export default function CameraCapture() {
     }
 
     setStatus('Creating Replicate job...')
-    const createResp = await fetch('/api/create-job', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: selfieFilename, referenceVideoUrl: referenceUrl }) })
+  const createResp = await fetch('/api/create-job', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, prompt }) })
     const createData = await createResp.json()
     // createData should contain job info and eventually a video public id or url
     setStatus('Job started — polling for result (this may take a while)')

@@ -21,10 +21,36 @@ async function pollPrediction(predictUrl: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
-  const { imageUrl, referenceVideoUrl, template } = req.body
+  const { imageUrl, prompt, template } = req.body
   if (!imageUrl) return res.status(400).json({ error: 'missing imageUrl' })
 
+  // prompt is required for text->video models
+  if (!prompt) return res.status(400).json({ error: 'missing prompt' })
+
   try {
+    // If using the free minimax model, use its simpler REST call and output handling
+    if ((process.env.REPLICATE_MODEL_ID || '').toLowerCase() === 'minimax/video-01') {
+      const resp = await fetch('https://api.replicate.com/v1/predictions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'minimax/video-01',
+          input: { prompt, prompt_optimizer: true }
+        })
+      })
+      const prediction = await resp.json()
+      // poll until completed
+      const finished = await pollPrediction(`https://api.replicate.com/v1/predictions/${prediction.id}`)
+      // minimax returns an output with a url accessor or direct url
+      const outputUrl = finished?.output?.[0] || finished?.output || (finished?.result?.url ? finished.result.url : null)
+      if (!outputUrl) return res.status(500).json({ error: 'no output from minimax model' })
+      const upload = await cloudinary.uploader.upload(outputUrl, { resource_type: 'video' })
+      return res.status(200).json({ ok: true, cloudinaryPublicId: upload.public_id, url: upload.secure_url })
+    }
+
     const response = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -35,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         version: process.env.REPLICATE_MODEL_VERSION || 'RUNWAY_GEN4_TURBO_VERSION',
         input: {
           image: imageUrl,
-          reference_video: referenceVideoUrl,
+          prompt,
           template
         }
       })
