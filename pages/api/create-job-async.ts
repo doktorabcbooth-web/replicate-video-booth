@@ -26,8 +26,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Runway / Gen-4 branch: use first_frame_image like the UI
     if (configuredModel.includes('runway') || configuredModel.includes('gen-4')) {
+      // Prefer data URI if provided (option 3) — fallback to hosted image URL (option 1)
+      const imageSource = req.body.imageDataUri || imageUrl
       // Include duration if provided; try multiple commonly accepted keys
-      const input: any = { first_frame_image: imageUrl, prompt }
+      const input: any = {
+        first_frame_image: imageSource,
+        image: imageSource,
+        init_image: imageSource,
+        prompt,
+      }
       if (duration) {
         input.duration = duration
         input.seconds = duration

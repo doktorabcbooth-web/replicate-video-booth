@@ -15,7 +15,7 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir)
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
   const form = formidable({ multiples: false, uploadDir, keepExtensions: true })
-  form.parse(req, (err, fields, files) => {
+  form.parse(req, (err: any, fields: any, files: any) => {
     if (err) return res.status(500).json({ error: 'upload error' })
     // TODO: return file paths and metadata
     res.status(200).json({ fields, files })

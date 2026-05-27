@@ -1,19 +1,18 @@
-import sgMail from '@sendgrid/mail'
+// email helper using Resend with nodemailer fallback
+import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
 
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
-if (SENDGRID_API_KEY) sgMail.setApiKey(SENDGRID_API_KEY)
+const RESEND_API_KEY = process.env.RESEND_API_KEY
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
 
 export async function sendEmailWithAttachment(to: string, subject: string, text: string, attachmentPath?: string) {
-  if (SENDGRID_API_KEY) {
-    const msg: any = {
+  if (resend) {
+    return resend.emails.send({
+      from: process.env.EMAIL_FROM || 'no-reply@example.com',
       to,
-      from: process.env.EMAIL_FROM,
       subject,
       text,
-      // TODO: attach file as base64 if attachmentPath provided
-    }
-    return sgMail.send(msg)
+    })
   }
 
   // Fallback to nodemailer (requires SMTP env vars)

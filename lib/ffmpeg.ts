@@ -10,8 +10,8 @@ export function overlayLogo(inputVideo: string, logoPath: string, outputPath: st
       .input(logoPath)
       .complexFilter([{"filter":"overlay","options":{"x":10,"y":10}}])
       .outputOptions(['-c:v libx264', '-crf 23', '-preset veryfast'])
-      .save(outputPath)
-      .on('end', () => resolve())
-      .on('error', (err) => reject(err))
+  .save(outputPath)
+  .on('end', () => resolve())
+  .on('error', (err: Error) => reject(err))
   })
 }
