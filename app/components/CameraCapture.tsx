@@ -29,7 +29,7 @@ export default function CameraCapture() {
 
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<string | null>(null)
-  const [prompt, setPrompt] = useState<string>(() => `A person is falling through the sky like parachuting but then lands in a sofa in their livingroom. Photorealistic, cinematic lighting, vertical video.`)
+  const [prompt, setPrompt] = useState<string>(() => `A person sitting on a comfortable sofa in their living room, smiling and waving at the camera. Cinematic lighting, photorealistic, vertical video.`)
   const [progress, setProgress] = useState<number>(0)
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
@@ -142,6 +142,18 @@ export default function CameraCapture() {
             </div>
           </div>
         )}
+
+        {/* ── Prompt Input ── */}
+        <div className="form-block">
+          <label>Video Prompt</label>
+          <textarea
+            className="input"
+            style={{ minHeight: '90px', padding: '12px', resize: 'vertical', fontFamily: 'inherit' }}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe the action..."
+          />
+        </div>
 
         {/* ── Email Input ── */}
         <div className="form-block">
