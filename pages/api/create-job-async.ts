@@ -1,14 +1,37 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || ''
+let _cachedVersion: string | null = null
+
+async function resolveModelVersion(modelIdOrName: string) {
+  if (!modelIdOrName) return null
+  // if it looks like a version id (no slash), return as-is
+  if (!modelIdOrName.includes('/')) return modelIdOrName
+  if (_cachedVersion) return _cachedVersion
+  try {
+    const r = await fetch(`https://api.replicate.com/v1/models/${encodeURIComponent(modelIdOrName)}`, {
+      headers: { Authorization: `Token ${REPLICATE_API_TOKEN}` },
+    })
+  const j = await r.json()
+  // Prefer default_version, then latest_version, then first versions[] entry
+  const v = j?.default_version?.id || j?.latest_version?.id || (j?.versions && j.versions[0]?.id)
+    if (v) _cachedVersion = v
+    return v
+  } catch (e) {
+    console.error('resolveModelVersion error', e)
+    return null
+  }
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
-  const { imageUrl, prompt, duration } = req.body
-  if (!imageUrl || !prompt) return res.status(400).json({ error: 'missing imageUrl or prompt' })
+  const { imageUrl, imageDataUri, prompt, duration } = req.body
+  const imageSource = imageDataUri || imageUrl
+  if (!imageSource || !prompt) return res.status(400).json({ error: 'missing image or prompt' })
 
   try {
-    const configuredModel = (process.env.REPLICATE_MODEL_ID || process.env.REPLICATE_MODEL_VERSION || '').toLowerCase()
+    const configuredModelRaw = (process.env.REPLICATE_MODEL_ID || process.env.REPLICATE_MODEL_VERSION || 'bytedance/seedance-2.0').trim()
+    const configuredModel = configuredModelRaw.toLowerCase()
 
     // minimax branch
     if (configuredModel.includes('minimax/video-01')) {
@@ -21,18 +44,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         body: JSON.stringify({ model: 'minimax/video-01', input: { prompt, prompt_optimizer: true } })
       })
       const j = await resp.json()
-      return res.status(200).json({ ok: true, id: j.id, raw: j })
+      return res.status(resp.status).json({ ok: resp.ok, id: j.id, raw: j })
+    }
+
+    // Seedance multimodal branch
+    if (configuredModel.includes('seedance') || configuredModelRaw === 'bytedance/seedance-2.0') {
+      const versionId = process.env.REPLICATE_MODEL_VERSION || await resolveModelVersion(configuredModelRaw)
+      if (!versionId) return res.status(400).json({ error: 'model version could not be resolved; set REPLICATE_MODEL_VERSION to a valid version id' })
+
+      // fixed reference video (Cloudinary) or override via env
+      const referenceVideoUrl = process.env.SEEDANCE_REFERENCE_VIDEO_URL || 'https://res.cloudinary.com/do4hqtjxb/video/upload/v1779962526/ssstik.io_1779814575128_msjdxi.mov'
+
+      const input: any = {
+        reference_video: referenceVideoUrl,
+        reference_image: imageSource,
+        prompt,
+        duration: duration || 5,
+      }
+
+      // If we resolved a version id, use it. Otherwise, try the older 'model' field as a fallback.
+      if (versionId) {
+        const resp = await fetch('https://api.replicate.com/v1/predictions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ version: versionId, input })
+        })
+        const j = await resp.json()
+        return res.status(resp.status).json({ ok: resp.ok, id: j.id, raw: j })
+      }
+
+      // Fallback: if we couldn't resolve a version id (network/auth issue), attempt to call using the model name.
+      try {
+        const resp2 = await fetch('https://api.replicate.com/v1/predictions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${REPLICATE_API_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ model: configuredModelRaw, input })
+        })
+        const j2 = await resp2.json()
+        return res.status(resp2.status).json({ ok: resp2.ok, id: j2.id, raw: j2 })
+      } catch (fallbackErr: any) {
+        console.error('seedance create fallback error', fallbackErr)
+        return res.status(500).json({ error: 'model version could not be resolved; set REPLICATE_MODEL_VERSION to a valid version id', detail: String(fallbackErr) })
+      }
     }
 
     // Runway / Gen-4 branch: use first_frame_image like the UI
     if (configuredModel.includes('runway') || configuredModel.includes('gen-4')) {
-      // Prefer data URI if provided (option 3) — fallback to hosted image URL (option 1)
-      const imageSource = req.body.imageDataUri || imageUrl
-      // Include duration if provided; try multiple commonly accepted keys
+      const imageSource2 = imageSource
       const input: any = {
-        first_frame_image: imageSource,
-        image: imageSource,
-        init_image: imageSource,
+        first_frame_image: imageSource2,
+        image: imageSource2,
+        init_image: imageSource2,
         prompt,
       }
       if (duration) {
@@ -40,30 +108,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         input.seconds = duration
         input.length = duration
       }
+      const versionId = process.env.REPLICATE_MODEL_VERSION || await resolveModelVersion(configuredModelRaw)
       const resp = await fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
         headers: {
           'Authorization': `Token ${REPLICATE_API_TOKEN}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ version: process.env.REPLICATE_MODEL_VERSION || process.env.REPLICATE_MODEL_ID, input })
+        body: JSON.stringify({ version: versionId, input })
       })
       const j = await resp.json()
-      return res.status(200).json({ ok: true, id: j.id, raw: j })
+      return res.status(resp.status).json({ ok: resp.ok, id: j.id, raw: j })
     }
 
     // Default: version-based call with image key
+    const versionIdFallback = process.env.REPLICATE_MODEL_VERSION || await resolveModelVersion(configuredModelRaw)
+    if (!versionIdFallback) return res.status(400).json({ error: 'model version not configured or resolved' })
     const resp = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ version: process.env.REPLICATE_MODEL_VERSION, input: { image: imageUrl, prompt } })
+      body: JSON.stringify({ version: versionIdFallback, input: { image: imageSource, prompt } })
     })
     const j = await resp.json()
-    return res.status(200).json({ ok: true, id: j.id, raw: j })
+    return res.status(resp.status).json({ ok: resp.ok, id: j.id, raw: j })
   } catch (err: any) {
+    console.error('create-job-async error', err)
     return res.status(500).json({ error: err.message || 'prediction error' })
   }
 }
