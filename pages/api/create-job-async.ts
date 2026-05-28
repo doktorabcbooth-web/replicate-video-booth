@@ -55,10 +55,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // fixed reference video (Cloudinary) or override via env
       const referenceVideoUrl = process.env.SEEDANCE_REFERENCE_VIDEO_URL || 'https://res.cloudinary.com/do4hqtjxb/video/upload/v1779962526/ssstik.io_1779814575128_msjdxi.mov'
 
-      // Seedance input: use 'image' as the starting frame (selfie), 'reference_videos' for motion reference
+      // Prefer hosted URL (imageUrl from Supabase upload) over data URI for Seedance
+      const imageUrlForSeedance = imageUrl || imageDataUri
+
+      // Seedance input: use 'image' as the starting frame, 'reference_videos' for motion reference
       const input: any = {
-        image: imageSource, // selfie as starting frame / first frame image
-        reference_videos: [referenceVideoUrl], // motion reference video
+        image: imageUrlForSeedance,  // selfie as starting frame (prefer hosted URL)
+        reference_videos: [referenceVideoUrl], // motion reference video as array
         prompt,
         duration: duration || 5,
         resolution: '480p', // lower cost
