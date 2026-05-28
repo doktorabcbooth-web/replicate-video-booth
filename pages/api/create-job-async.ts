@@ -58,15 +58,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Prefer hosted URL (imageUrl from Supabase upload) over data URI for Seedance
       const imageUrlForSeedance = imageUrl || imageDataUri
 
-      // Seedance input: use 'image' as the starting frame, 'reference_videos' for motion reference
+      // Seedance input: per OpenAPI schema from the model page
+      // Use 'image' as starting/first frame (cannot be combined with reference images)
       const input: any = {
-        image: imageUrlForSeedance,  // selfie as starting frame (prefer hosted URL)
-        reference_videos: [referenceVideoUrl], // motion reference video as array
         prompt,
+        image: imageUrlForSeedance,         // selfie as starting frame
+        reference_videos: [referenceVideoUrl], // motion reference video (must be array)
         duration: duration || 5,
-        resolution: '480p', // lower cost
-        aspect_ratio: '9:16', // vertical format
+        resolution: '480p',                // lower cost
+        aspect_ratio: '9:16',              // vertical format
+        seed: 42,                          // fixed seed for reproducibility
+        generate_audio: false,             // optional: disable audio to save cost
       }
+
+      console.log('Seedance input:', JSON.stringify(input, null, 2))
 
       // If we resolved a version id, use it. Otherwise, try the older 'model' field as a fallback.
       if (versionId) {
@@ -79,6 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           body: JSON.stringify({ version: versionId, input })
         })
         const j = await resp.json()
+        console.log('Seedance response:', j)
         return res.status(resp.status).json({ ok: resp.ok, id: j.id, raw: j })
       }
 
