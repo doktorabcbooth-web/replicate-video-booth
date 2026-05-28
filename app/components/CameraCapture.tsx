@@ -6,12 +6,14 @@ export default function CameraCapture() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
+  const [cameraStarted, setCameraStarted] = useState(false)
 
   async function startCamera() {
     if (!videoRef.current) return
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
     videoRef.current.srcObject = stream
     await videoRef.current.play()
+    setCameraStarted(true)
   }
 
   function takePhoto() {
@@ -26,9 +28,8 @@ export default function CameraCapture() {
   }
 
   const [email, setEmail] = useState('')
-  // reference video removed — we only use the selfie as the starting frame
   const [status, setStatus] = useState<string | null>(null)
-  const [prompt, setPrompt] = useState<string>(() => `The subject from the starting frame comes to life on the football pitch. He dribbles forward at a controlled pace, weaving through defenders. Movement is deliberate and grounded — natural athletic motion. He shifts weight, fakes left, beats the last defender, and slots the ball into the bottom corner. The goalkeeper dives but can't reach it. The stadium crowd cheers softly in the background. Preserve the subject's face, identity, and body texture throughout the motion. Photorealistic, shot on cinema camera, natural stadium floodlight lighting, shallow depth of field on subject, broadcast TV football aesthetic, slight motion blur on the ball.`)
+  const [prompt, setPrompt] = useState<string>(() => `The person from the starting frame walks confidently onto a sunlit football pitch wearing a team jersey. They juggle a football a few times, then take a powerful shot towards the goal. The camera follows the ball as it flies into the net. Bright daylight, green grass, photorealistic, cinematic shallow depth of field, broadcast sports aesthetic.`)
   const [progress, setProgress] = useState<number>(0)
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
@@ -58,40 +59,40 @@ export default function CameraCapture() {
 
     setStatus('Starting Seedance job...')
     // Use async create endpoint so browser doesn't block
-  // send both hosted URL and the data-uri so Runway can use either hosted or data input
-  const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, imageDataUri: photo, prompt, duration: 5 }) })
+    // send both hosted URL and the data-uri so Seedance can use either hosted or data input
+    const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, imageDataUri: photo, prompt, duration: 5 }) })
     const createData = await createResp.json()
     if (!createData?.ok || !createData?.id) return setStatus('Failed to start job: ' + (createData?.error || JSON.stringify(createData)))
     const id = createData.id
-  setStatus('Job started, polling status...')
-  setProgress(20)
+    setStatus('Job started, polling status...')
+    setProgress(20)
 
     // Poll status endpoint until succeeded
     let finalStatus = null
     for (;;) {
-  // eslint-disable-next-line no-await-in-loop
+      // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, 3000))
       // eslint-disable-next-line no-await-in-loop
       const sResp = await fetch(`/api/prediction-status?id=${encodeURIComponent(id)}`)
       const s = await sResp.json()
       finalStatus = s.status || s.state || s
       // Try to show logs progress
-  if (s.logs) setStatus(`Processing — ${s.status || ''} — ${s.logs.split('\n').slice(-2).join(' | ')}`)
-  else setStatus(`Processing — ${s.status || ''}`)
-  // rough progress estimate from logs/status
-  setProgress((p) => Math.min(95, p + 8))
+      if (s.logs) setStatus(`Processing — ${s.status || ''} — ${s.logs.split('\n').slice(-2).join(' | ')}`)
+      else setStatus(`Processing — ${s.status || ''}`)
+      // rough progress estimate from logs/status
+      setProgress((p) => Math.min(95, p + 8))
       if (s.status === 'succeeded' || s.state === 'succeeded') break
       if (s.status === 'failed' || s.state === 'failed') return setStatus('Job failed')
     }
 
-  setStatus('Finalizing prediction and uploading video...')
-  setProgress(95)
+    setStatus('Finalizing prediction and uploading video...')
+    setProgress(95)
     const finResp = await fetch('/api/finalize-prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     const fin = await finResp.json()
     if (!fin?.ok || !fin?.publicId) return setStatus('Finalize failed: ' + JSON.stringify(fin))
 
-  setStatus('Creating overlay URL...')
-  setProgress(98)
+    setStatus('Creating overlay URL...')
+    setProgress(98)
     const logoPublicId = process.env.NEXT_PUBLIC_CLOUDINARY_LOGO_ID || 'Icon_uu7a2w'
     const procResp = await fetch('/api/process-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoPublicId: fin.publicId, logoPublicId }) })
     const procData = await procResp.json()
@@ -113,61 +114,73 @@ export default function CameraCapture() {
   }
 
   return (
-    <div className="flex items-center justify-center">
-      <div className="w-full max-w-xl bg-white rounded-xl p-6 shadow-lg">
-        <div className="flex flex-col items-center gap-4">
-          <video ref={videoRef} className="w-72 h-72 rounded bg-black" />
-
-          <div className="flex gap-3">
-            <button onClick={startCamera} className="px-4 py-2 bg-brand-teal text-white rounded font-semibold">Start Camera</button>
-            <button onClick={takePhoto} className="px-4 py-2 bg-brand-teal-2 text-white rounded font-semibold">Take Photo</button>
-          </div>
-
-          {photo && (
-            <div className="flex flex-col items-center">
-              <h3 className="font-semibold">Selfie</h3>
-              <img src={photo} alt="preview" className="w-40 h-40 object-cover rounded-full border-4 border-brand-neutral" />
-            </div>
-          )}
-
-          {/* reference video removed — selfie used as starting frame */}
-
-          <div className="w-full">
-            <label className="block mb-1">Your email</label>
-            <input
-              className="block border p-2 rounded w-full"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') submitJob() }}
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div className="w-full">
-            <button onClick={submitJob} className="w-full mt-1 px-4 py-2 bg-brand-dark text-white rounded font-semibold">Create Video & Preview</button>
-          </div>
-
-          <div className="w-full">
-            <div className="w-full bg-brand-neutral rounded-full h-2 overflow-hidden">
-              <div className="h-2 bg-brand-teal" style={{ width: `${progress}%` }} />
+    <>
+      <section className="card">
+        {/* ── Camera ── */}
+        <div className="camera-shell">
+          <div className="camera-stage">
+            <div className="camera-view">
+              <video ref={videoRef} playsInline muted style={cameraStarted ? { display: 'block' } : { display: 'none' }} />
+              {!cameraStarted && (
+                <div className="portrait-placeholder" aria-hidden="true" />
+              )}
             </div>
           </div>
 
-          {status && <div className="mt-2 text-sm text-center">{status}</div>}
-
-          {overlayUrl && (
-            <div className="mt-4 w-full text-center">
-              <h4 className="font-semibold mb-2">Preview result</h4>
-              <video src={overlayUrl} controls className="w-full rounded-md bg-black" />
-              <div className="mt-3 flex gap-2 justify-center">
-                <button onClick={sendEmailNow} className="px-4 py-2 bg-brand-teal text-white rounded font-semibold">Send Email</button>
-                <a href={overlayUrl} target="_blank" rel="noreferrer" className="px-4 py-2 bg-brand-neutral text-brand-dark rounded">Open in new tab</a>
-              </div>
-            </div>
-          )}
+          <div className="button-row">
+            <button onClick={startCamera} className="btn btn-primary">Start Camera</button>
+            <button onClick={takePhoto} className="btn btn-primary">Take Photo</button>
+          </div>
         </div>
-      </div>
+
+        {/* ── Selfie Preview ── */}
+        {photo && (
+          <div className="preview-wrap">
+            <p className="section-label">Selfie</p>
+            <div className="preview-avatar">
+              <img src={photo} alt="Your selfie" />
+            </div>
+          </div>
+        )}
+
+        {/* ── Email Input ── */}
+        <div className="form-block">
+          <label>Your email</label>
+          <input
+            className="input"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submitJob() }}
+            placeholder="you@example.com"
+          />
+        </div>
+
+        {/* ── CTA ── */}
+        <button onClick={submitJob} className="cta">Create Video &amp; Preview</button>
+
+        {/* ── Progress ── */}
+        <div className="progress-track">
+          <div className="progress-bar" style={{ width: `${progress}%` }} />
+        </div>
+
+        {/* ── Status ── */}
+        {status && <div className="status-text">{status}</div>}
+
+        {/* ── Result Preview ── */}
+        {overlayUrl && (
+          <div className="result-preview">
+            <p className="section-label">Preview result</p>
+            <video src={overlayUrl} controls playsInline />
+            <div className="result-actions">
+              <button onClick={sendEmailNow} className="btn-send">Send Email</button>
+              <a href={overlayUrl} target="_blank" rel="noreferrer" className="btn-link">Open in new tab</a>
+            </div>
+          </div>
+        )}
+      </section>
+
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-    </div>
+    </>
   )
 }
