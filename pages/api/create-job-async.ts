@@ -52,23 +52,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const versionId = process.env.REPLICATE_MODEL_VERSION || await resolveModelVersion(configuredModelRaw)
       if (!versionId) return res.status(400).json({ error: 'model version could not be resolved; set REPLICATE_MODEL_VERSION to a valid version id' })
 
-      // fixed reference video (Cloudinary) or override via env
-      const referenceVideoUrl = process.env.SEEDANCE_REFERENCE_VIDEO_URL || 'https://res.cloudinary.com/do4hqtjxb/video/upload/v1779962526/ssstik.io_1779814575128_msjdxi.mov'
-
       // Prefer hosted URL (imageUrl from Supabase upload) over data URI for Seedance
       const imageUrlForSeedance = imageUrl || imageDataUri
 
       // Seedance input: per OpenAPI schema from the model page
-      // Use 'image' as starting/first frame (cannot be combined with reference images)
+      // Use 'image' as starting/first frame for image-to-video generation
+      // NOTE: 'image' (first frame) CANNOT be combined with reference_images or reference_videos
       const input: any = {
         prompt,
         image: imageUrlForSeedance,         // selfie as starting frame
-        reference_videos: [referenceVideoUrl], // motion reference video (must be array)
         duration: duration || 5,
-        resolution: '480p',                // lower cost
+        resolution: '480p',                // vertical 480p — cheapest tier
         aspect_ratio: '9:16',              // vertical format
         seed: 42,                          // fixed seed for reproducibility
-        generate_audio: false,             // optional: disable audio to save cost
+        generate_audio: false,             // disable audio to save cost
       }
 
       console.log('Seedance input:', JSON.stringify(input, null, 2))

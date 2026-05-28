@@ -28,7 +28,7 @@ export default function CameraCapture() {
   const [email, setEmail] = useState('')
   // reference video removed — we only use the selfie as the starting frame
   const [status, setStatus] = useState<string | null>(null)
-  const [prompt, setPrompt] = useState<string>(() => `The subject from the starting frame comes to life on the football pitch, taking the place of the player in [Video1]. He dribbles forward at a controlled pace, weaving through defenders. Movement is deliberate and grounded — natural athletic motion. He shifts weight, fakes left, beats the last defender, and slots the ball into the bottom corner. The goalkeeper dives but can't reach it. The stadium crowd cheers softly in the background. Preserve the subject's face, identity, and body texture throughout the motion. Photorealistic, shot on cinema camera, natural stadium floodlight lighting, shallow depth of field on subject, broadcast TV football aesthetic, slight motion blur on the ball.`)
+  const [prompt, setPrompt] = useState<string>(() => `The subject from the starting frame comes to life on the football pitch. He dribbles forward at a controlled pace, weaving through defenders. Movement is deliberate and grounded — natural athletic motion. He shifts weight, fakes left, beats the last defender, and slots the ball into the bottom corner. The goalkeeper dives but can't reach it. The stadium crowd cheers softly in the background. Preserve the subject's face, identity, and body texture throughout the motion. Photorealistic, shot on cinema camera, natural stadium floodlight lighting, shallow depth of field on subject, broadcast TV football aesthetic, slight motion blur on the ball.`)
   const [progress, setProgress] = useState<number>(0)
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
@@ -40,7 +40,11 @@ export default function CameraCapture() {
 
     // Upload selfie base64 to server which will upload to Supabase
     const selfieBlob = await (await fetch(photo)).blob()
-    const b64 = await selfieBlob.arrayBuffer().then((ab) => Buffer.from(ab).toString('base64'))
+    const ab = await selfieBlob.arrayBuffer()
+    const bytes = new Uint8Array(ab)
+    let binary = ''
+    bytes.forEach((b) => { binary += String.fromCharCode(b) })
+    const b64 = btoa(binary)
     const selfieFilename = `selfie-${Date.now()}.jpg`
     const uploadResp = await fetch('/api/upload-to-supabase', {
       method: 'POST',
@@ -52,7 +56,7 @@ export default function CameraCapture() {
     setStatus('Selfie uploaded')
     const imageUrl = uploadData.publicUrl
 
-    setStatus('Starting Runway job...')
+    setStatus('Starting Seedance job...')
     // Use async create endpoint so browser doesn't block
   // send both hosted URL and the data-uri so Runway can use either hosted or data input
   const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, imageDataUri: photo, prompt, duration: 5 }) })
