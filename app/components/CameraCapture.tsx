@@ -29,7 +29,7 @@ export default function CameraCapture() {
 
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<string | null>(null)
-  const [prompt, setPrompt] = useState<string>(() => `The person from the starting frame walks confidently onto a sunlit football pitch wearing a team jersey. They juggle a football a few times, then take a powerful shot towards the goal. The camera follows the ball as it flies into the net. Bright daylight, green grass, photorealistic, cinematic shallow depth of field, broadcast sports aesthetic.`)
+  const [prompt, setPrompt] = useState<string>(() => `A person stands on a beautiful sunlit football pitch, smiling at the camera and holding a football. Photorealistic, cinematic lighting, vertical video.`)
   const [progress, setProgress] = useState<number>(0)
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
