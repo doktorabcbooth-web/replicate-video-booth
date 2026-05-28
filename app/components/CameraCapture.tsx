@@ -29,7 +29,7 @@ export default function CameraCapture() {
 
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<string | null>(null)
-  const [prompt, setPrompt] = useState<string>(() => `A person sitting on a comfortable sofa in their living room, smiling and waving at the camera. Cinematic lighting, photorealistic, vertical video.`)
+  const [prompt, setPrompt] = useState<string>(() => `A person receives a football pass, turns heads the goal with the ball at their feet. They dribble past three players and scores a goal celebrates it. Photorealistic, cinematic lighting, vertical video.`)
   const [progress, setProgress] = useState<number>(0)
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
