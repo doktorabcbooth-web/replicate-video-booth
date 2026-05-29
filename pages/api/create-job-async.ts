@@ -25,9 +25,9 @@ async function resolveModelVersion(modelIdOrName: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
-  const { imageUrl, imageDataUri, prompt, duration } = req.body
+  const { imageUrl, imageDataUri, duration } = req.body
   const imageSource = imageDataUri || imageUrl
-  if (!imageSource || !prompt) return res.status(400).json({ error: 'missing image or prompt' })
+  if (!imageSource) return res.status(400).json({ error: 'missing image' })
 
   try {
     const configuredModelRaw = (process.env.REPLICATE_MODEL_ID || process.env.REPLICATE_MODEL_VERSION || 'bytedance/seedance-2.0').trim()
