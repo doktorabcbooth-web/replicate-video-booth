@@ -94,7 +94,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         referenceVideo1 = CLOUDINARY_VIDEO_URL
       }
 
-      const seedancePrompt = `The character from [Image1] turns around and suddenly is in a world cup football stadium, runs forward with a single football, dribbles past two defenders, shoots once into the goal and scores a goal that hits the net of the goal in a cinematographic way, then celebrates facing the camera. Night match in a packed world championship stadium. Huge flags in the crowd show the [image2] logo, waving in the stands. Cinematic broadcast style, smooth camera, no extra balls. Motion transfer, style reference, and editing from [video1]. Hyper-realistic, 8k. All the football equipment, and all the logos you can see in the stadium are branded with the logo from [image2] and with "DoctorABC".`
+      const seedancePrompt = `Use [image1] as the main character reference and first frame.
+Use [image2] as the exact logo artwork to print on all stadium flags, LED screens, and as a small decal on the football.
+Use Video1 to reference the camera motion, dribbling rhythm, and editing style.
+[0–1s] Opening
+The video starts on [image1]: the character from Image1 steps out of a tunnel into a huge night‑time football stadium, holding a single football. The crowd is visible in the distance.
+[1–4s] Dribble and goal
+The character from [image1] turns around and runs forward with the single football. The camera follows from behind in a smooth tracking shot as the character dribbles past two generic defenders, then shoots once and scores. The ball hits the net in a dramatic, cinematic way.
+All around the stands, huge crowd flags are big fabric banners completely filled with the [image2] logo, repeated across the cloth and clearly visible. The same [image2] logo appears on the digital stadium screens and LED boards. The football has a small, sharp [image2] logo printed on one side, visible as it moves but not distorted. Night match in a packed international stadium.
+[4–5s] Celebration
+After scoring, the character turns back toward the camera and celebrates energetically facing the viewer. The camera moves to a front angle, with the [image2] logo flags and LED boards clearly visible in the background.
+Cinematic broadcast style, smooth camera, no extra balls, consistent character. Photorealistic look. Fully reference [video1] for motion transfer, pacing, and editing style. Hyperrealistic, 8k.`
 
       // Seedance input: using reference_images + reference_videos (multimodal)
       const input: any = {

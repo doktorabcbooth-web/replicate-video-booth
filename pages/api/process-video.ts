@@ -11,10 +11,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // DoktorABC SVG logo: https://res.cloudinary.com/do4hqtjxb/image/upload/v1780067385/doktorabc-logo_uwqswp.svg
     // Center-bottom placement matching "Created by Glam AI" layout.
-    // To add a white background behind the SVG logo, we overlay a white rectangle (b_white) 
-    // or overlay a custom white block first (c_fill,h_60,w_180,e_colorize,co_white) and then place the logo on top.
-    // Cloudinary chain: Place white rectangle at south y_35, then place logo at south y_40.
-    const finalUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/video/upload/w_480,h_853,c_fill/l_doktorabc-logo_uwqswp,w_140,g_south,y_40,bo_10px_solid_white,b_white,r_max/${videoPublicId}.mp4`
+    // DoktorABC SVG logo: https://res.cloudinary.com/do4hqtjxb/image/upload/v1780067385/doktorabc-logo_uwqswp.svg
+    // To add a clean white background behind the SVG logo without cut edges, we pad the overlay image with a white background.
+    // Cloudinary chain: w_160,h_55,c_pad,b_white,r_max creates a clean rounded white pill containing the SVG.
+    const finalUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/video/upload/w_480,h_853,c_fill/l_doktorabc-logo_uwqswp,w_160,h_55,c_pad,b_white,r_max,g_south,y_40/${videoPublicId}.mp4`
     res.status(200).json({ url: finalUrl })
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'process error' })

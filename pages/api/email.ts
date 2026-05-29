@@ -18,13 +18,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           <style>
             body { font-family: 'Poppins', Helvetica, Arial, sans-serif; background-color: #E7FCF7; color: #0D2C54; padding: 20px; margin: 0; }
             .email-container { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 30px; padding: 30px; box-shadow: 0 10px 30px rgba(13,44,84,0.06); border: 1px solid rgba(13, 44, 84, 0.08); text-align: center; }
-            .logo-header { display: inline-flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 25px; padding: 10px 18px; border-radius: 999px; background: #EEF1F6; }
-            .logo-header img { width: 38px; height: 38px; object-fit: contain; }
-            .logo-text { font-weight: 700; font-size: 16px; color: #0D2C54; letter-spacing: 0.5px; }
+            .logo-header { display: inline-flex; align-items: center; justify-content: center; margin-bottom: 25px; padding: 10px 18px; border-radius: 999px; background: #EEF1F6; }
+            .logo-header img { width: 140px; height: 38px; object-fit: contain; }
             h1 { font-size: 22px; font-weight: 700; color: #0D2C54; line-height: 1.4; margin: 0 0 20px 0; }
             .video-preview { border-radius: 12px; overflow: hidden; margin: 25px 0; border: 1px solid rgba(13, 44, 84, 0.1); background: #000; display: block; position: relative; }
             .video-preview img { width: 100%; display: block; }
-            .btn { display: inline-block; min-height: 48px; line-height: 48px; padding: 0 35px; border-radius: 6px; background: linear-gradient(135deg, #29C7A1, #11DDAC); color: #0D2C54; font-weight: 700; font-size: 14px; text-decoration: none; box-shadow: 0 4px 15px rgba(41, 199, 161, 0.3); transition: transform 0.12s ease; margin-top: 10px; }
+            /* Cookie banner button replica style: fully rounded (24px+ border-radius), crisp green gradients */
+            .btn { display: inline-block; min-height: 48px; line-height: 48px; padding: 0 35px; border-radius: 24px; background: linear-gradient(135deg, #23A470, #73C04A); color: #ffffff; font-weight: 700; font-size: 15px; text-decoration: none; box-shadow: 0 4px 15px rgba(35, 164, 112, 0.25); transition: transform 0.12s ease; margin-top: 10px; }
             .footer { margin-top: 30px; font-size: 11px; color: rgba(13, 44, 84, 0.5); }
           </style>
         </head>
@@ -32,7 +32,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           <div class="email-container">
             <div class="logo-header">
               <img src="https://res.cloudinary.com/do4hqtjxb/image/upload/v1780067385/doktorabc-logo_uwqswp.svg" alt="DoctorABC Logo">
-              <span class="logo-text">DoctorABC</span>
             </div>
             <h1>Be the star of the world cup and share the goal you scored with DoctorABC!</h1>
             <div class="video-preview">
