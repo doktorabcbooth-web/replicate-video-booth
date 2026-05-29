@@ -7,13 +7,36 @@ export default function CameraCapture() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
   const [cameraStarted, setCameraStarted] = useState(false)
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
 
-  async function startCamera() {
+  async function startCamera(mode: 'user' | 'environment' = 'user') {
     if (!videoRef.current) return
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-    videoRef.current.srcObject = stream
-    await videoRef.current.play()
-    setCameraStarted(true)
+    const currentStream = videoRef.current.srcObject as MediaStream | null
+    if (currentStream) {
+      currentStream.getTracks().forEach((track) => track.stop())
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode } })
+      videoRef.current.srcObject = stream
+      await videoRef.current.play()
+      setCameraStarted(true)
+      setFacingMode(mode)
+    } catch (err) {
+      console.error('Error starting camera:', err)
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+        setCameraStarted(true)
+      } catch (fallbackErr) {
+        alert('Could not start camera: ' + String(fallbackErr))
+      }
+    }
+  }
+
+  function toggleCamera() {
+    const nextMode = facingMode === 'user' ? 'environment' : 'user'
+    startCamera(nextMode)
   }
 
   function takePhoto() {
@@ -25,6 +48,16 @@ export default function CameraCapture() {
     ctx.drawImage(videoRef.current, 0, 0)
     const data = canvasRef.current.toDataURL('image/jpeg')
     setPhoto(data)
+  }
+
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPhoto(reader.result as string)
+    }
+    reader.readAsDataURL(file)
   }
 
   const [email, setEmail] = useState('')
@@ -127,9 +160,29 @@ export default function CameraCapture() {
             </div>
           </div>
 
-          <div className="button-row">
-            <button onClick={startCamera} className="btn btn-primary">Start Camera</button>
-            <button onClick={takePhoto} className="btn btn-primary">Take Photo</button>
+          <div className="button-row" style={{ gridTemplateColumns: cameraStarted ? '1fr 1fr' : '1fr', width: '100%', maxWidth: '250px' }}>
+            {!cameraStarted ? (
+              <button onClick={() => startCamera('user')} className="btn btn-primary">Start Camera</button>
+            ) : (
+              <>
+                <button onClick={takePhoto} className="btn btn-primary">Take Photo</button>
+                <button onClick={toggleCamera} className="btn btn-primary" style={{ background: 'var(--brand-dark)', color: '#fff' }}>Switch Camera</button>
+              </>
+            )}
+          </div>
+
+          <div style={{ width: '100%', maxWidth: '250px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {cameraStarted && (
+              <button onClick={() => {
+                const stream = videoRef.current?.srcObject as MediaStream | null
+                if (stream) stream.getTracks().forEach(track => track.stop())
+                setCameraStarted(false)
+              }} className="btn btn-primary" style={{ background: '#e5e9f0', color: 'var(--brand-dark)' }}>Stop Camera</button>
+            )}
+            <label className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--brand-neutral)', color: 'var(--brand-dark)' }}>
+              Upload Image
+              <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+            </label>
           </div>
         </div>
 
