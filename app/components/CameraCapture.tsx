@@ -71,21 +71,17 @@ export default function CameraCapture() {
     setStatus('Uploading selfie...')
     setProgress(5)
 
-    // Upload selfie base64 to server which will upload to Supabase
-    const selfieBlob = await (await fetch(photo)).blob()
-    const ab = await selfieBlob.arrayBuffer()
-    const bytes = new Uint8Array(ab)
-    let binary = ''
-    bytes.forEach((b) => { binary += String.fromCharCode(b) })
-    const b64 = btoa(binary)
+    // Extract base64 from data URI (format: data:image/jpeg;base64,BASE64_DATA)
+    const b64 = photo.split(',')[1]
+    if (!b64) return setStatus('Failed to encode selfie')
     const selfieFilename = `selfie-${Date.now()}.jpg`
     const uploadResp = await fetch('/api/upload-to-supabase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: selfieFilename, b64: b64, contentType: selfieBlob.type })
+      body: JSON.stringify({ filename: selfieFilename, b64, contentType: 'image/jpeg' })
     })
     const uploadData = await uploadResp.json()
-    if (!uploadData?.ok) return setStatus('Failed to upload selfie')
+    if (!uploadData?.ok) return setStatus('Failed to upload selfie: ' + (uploadData?.error || 'unknown'))
     setStatus('Selfie uploaded')
     const imageUrl = uploadData.publicUrl
 
