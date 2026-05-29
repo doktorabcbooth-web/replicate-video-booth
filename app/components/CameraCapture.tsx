@@ -62,7 +62,6 @@ export default function CameraCapture() {
 
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<string | null>(null)
-  const [prompt, setPrompt] = useState<string>(() => `A person receives a football pass, turns heads the goal with the ball at their feet. They dribble past three players and scores a goal celebrates it. Photorealistic, cinematic lighting, vertical video.`)
   const [progress, setProgress] = useState<number>(0)
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
@@ -93,7 +92,7 @@ export default function CameraCapture() {
     setStatus('Starting Seedance job...')
     // Use async create endpoint so browser doesn't block
     // send both hosted URL and the data-uri so Seedance can use either hosted or data input
-    const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, imageDataUri: photo, prompt, duration: 5 }) })
+    const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, imageDataUri: photo, duration: 5 }) })
     const createData = await createResp.json()
     if (!createData?.ok || !createData?.id) return setStatus('Failed to start job: ' + (createData?.error || JSON.stringify(createData)))
     const id = createData.id
@@ -195,18 +194,6 @@ export default function CameraCapture() {
             </div>
           </div>
         )}
-
-        {/* ── Prompt Input ── */}
-        <div className="form-block">
-          <label>Video Prompt</label>
-          <textarea
-            className="input"
-            style={{ minHeight: '90px', padding: '12px', resize: 'vertical', fontFamily: 'inherit' }}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe the action..."
-          />
-        </div>
 
         {/* ── Email Input ── */}
         <div className="form-block">

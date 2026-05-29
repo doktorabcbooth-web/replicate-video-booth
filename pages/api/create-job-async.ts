@@ -52,20 +52,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const versionId = process.env.REPLICATE_MODEL_VERSION || await resolveModelVersion(configuredModelRaw)
       if (!versionId) return res.status(400).json({ error: 'model version could not be resolved; set REPLICATE_MODEL_VERSION to a valid version id' })
 
-      // Prefer hosted URL (imageUrl from Supabase upload) over data URI for Seedance
-      const imageUrlForSeedance = imageUrl || imageDataUri
+      const referenceImage1 = imageUrl || imageDataUri // selfie from camera
+      const referenceImage2 = 'https://res.cloudinary.com/do4hqtjxb/image/upload/v1779910689/Icon_uu7a2w.png' // logo
+      const referenceVideo1 = 'https://res.cloudinary.com/do4hqtjxb/video/upload/v1780060428/GlamAI_qlstmt.mp4' // motion reference
 
-      // Seedance input: per OpenAPI schema from the model page
-      // Use 'image' as starting/first frame for image-to-video generation
-      // NOTE: 'image' (first frame) CANNOT be combined with reference_images or reference_videos
+      const seedancePrompt = `[0-1s] The video starts with [image1], the character from [Image1] enters a world cup football stadium.
+[1-4s] The character from [image1] turns around and runs forward with a single football. The camera follows the character from behind as the character dribbles past two defenders, shoots once into the goal and scores a goal that hits the net of the goal in a cinematographic way. There are huge crowd flags with the [image2] on them. Night match in a packed world championship stadium. Huge flags in the crowd show the [image2] logo, waving in the stands. The logo from [image2] also appear in the stadium screens. The football also has the logo from [image2] on it.
+[4-5s] After scoring the goal, the character celebrates the goal facing the camera. 
+Cinematic broadcast style, smooth camera, no extra balls. Photorealistic content. Motion transfer, style reference, and editing from [video1]`
+
+      // Seedance input: using reference_images + reference_videos (multimodal)
       const input: any = {
-        prompt,
-        image: imageUrlForSeedance,         // selfie as starting frame
-        duration: duration || 5,
-        resolution: '480p',                // vertical 480p — cheapest tier
-        aspect_ratio: '9:16',              // vertical format
-        seed: 42,                          // fixed seed for reproducibility
-        generate_audio: false,             // disable audio to save cost
+        prompt: seedancePrompt,
+        reference_images: [referenceImage1, referenceImage2],
+        reference_videos: [referenceVideo1],
+        duration: 5,
+        resolution: '480p',
+        aspect_ratio: '9:16',
+        seed: 99,
+        generate_audio: false,
       }
 
       console.log('Seedance input:', JSON.stringify(input, null, 2))
