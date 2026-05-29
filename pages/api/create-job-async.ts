@@ -1,5 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
+}
+
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || ''
 let _cachedVersion: string | null = null
 
