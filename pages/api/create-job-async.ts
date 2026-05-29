@@ -62,12 +62,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const referenceImage1 = imageUrl || imageDataUri // selfie from camera
       const referenceImage2 = 'https://res.cloudinary.com/do4hqtjxb/image/upload/v1779910689/Icon_uu7a2w.png' // logo
-      const referenceVideo1 = 'https://res.cloudinary.com/do4hqtjxb/video/upload/vc_h264/v1780060428/GlamAI_qlstmt.mp4' // motion reference
 
-      const seedancePrompt = `[0-1s] The video starts with [image1], the character from [Image1] enters a world cup football stadium.
-[1-4s] The character from [image1] turns around and runs forward with a single football. The camera follows the character from behind as the character dribbles past two defenders, shoots once into the goal and scores a goal that hits the net of the goal in a cinematographic way. There are huge crowd flags with the [image2] on them. Night match in a packed world championship stadium. Huge flags in the crowd show the [image2] logo, waving in the stands. The logo from [image2] also appear in the stadium screens. The football also has the logo from [image2] on it.
+      // The original Cloudinary video is HEVC-encoded. The Seedance model rejects
+      // HEVC containers and Cloudinary's on-the-fly vc_h264 transcode streams
+      // without Content-Length, which the model also can't handle.
+      // Fix: download the H.264 transcoded bytes, then upload to Replicate's
+      // file hosting so the model gets a clean, complete file with proper headers.
+      const CLOUDINARY_VIDEO_URL = 'https://res.cloudinary.com/do4hqtjxb/video/upload/vc_h264/v1780060428/GlamAI_qlstmt.mp4'
+      let referenceVideo1: string
+      try {
+        console.log('Pre-fetching reference video for re-upload...')
+        const vidResp = await fetch(CLOUDINARY_VIDEO_URL)
+        if (!vidResp.ok) throw new Error(`Failed to fetch video: ${vidResp.status}`)
+        const vidBuffer = await vidResp.arrayBuffer()
+        console.log(`Fetched video: ${vidBuffer.byteLength} bytes, uploading to Replicate...`)
+
+        const formData = new FormData()
+        formData.append('content', new Blob([vidBuffer], { type: 'video/mp4' }), 'reference.mp4')
+        const uploadResp = await fetch('https://api.replicate.com/v1/files', {
+          method: 'POST',
+          headers: { 'Authorization': `Token ${REPLICATE_API_TOKEN}` },
+          body: formData,
+        })
+        const uploadJson = await uploadResp.json()
+        if (!uploadResp.ok) throw new Error(`Replicate file upload failed: ${JSON.stringify(uploadJson)}`)
+        referenceVideo1 = uploadJson.urls?.get || uploadJson.url
+        if (!referenceVideo1) throw new Error(`No URL in Replicate file upload response: ${JSON.stringify(uploadJson)}`)
+        console.log('Reference video uploaded to Replicate:', referenceVideo1)
+      } catch (uploadErr: any) {
+        console.error('Video re-upload failed, falling back to direct Cloudinary URL', uploadErr)
+        referenceVideo1 = CLOUDINARY_VIDEO_URL
+      }
+
+      const seedancePrompt = `[0-1s] The video starts with [Image1], the character from [Image1] enters a world cup football stadium.
+[1-4s] The character from [Image1] turns around and runs forward with a single football. The camera follows the character from behind as the character dribbles past two defenders, shoots once into the goal and scores a goal that hits the net of the goal in a cinematographic way. There are huge crowd flags with the [Image2] on them. Night match in a packed world championship stadium. Huge flags in the crowd show the [Image2] logo, waving in the stands. The logo from [Image2] also appear in the stadium screens. The football also has the logo from [Image2] on it.
 [4-5s] After scoring the goal, the character celebrates the goal facing the camera. 
-Cinematic broadcast style, smooth camera, no extra balls. Photorealistic content. Motion transfer, style reference, and editing from [video1]`
+Cinematic broadcast style, smooth camera, no extra balls. Photorealistic content. Motion transfer, style reference, and editing from [Video1].`
 
       // Seedance input: using reference_images + reference_videos (multimodal)
       const input: any = {

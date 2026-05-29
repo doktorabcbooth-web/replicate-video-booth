@@ -121,7 +121,7 @@ export default function CameraCapture() {
       // rough progress estimate from logs/status
       setProgress((p) => Math.min(95, p + 8))
       if (s.status === 'succeeded' || s.state === 'succeeded') break
-      if (s.status === 'failed' || s.state === 'failed') return setStatus('Job failed')
+      if (s.status === 'failed' || s.state === 'failed') return setStatus('Prediction failed\n\nError: ' + (s.error || JSON.stringify(s)))
     }
 
     setStatus('Finalizing prediction and uploading video...')
