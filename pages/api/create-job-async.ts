@@ -94,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         referenceVideo1 = CLOUDINARY_VIDEO_URL
       }
 
-      const seedancePrompt = `The character from [Image1] turns around and suddenly is in a world cup football stadium, runs forward with a single football, dribbles past two defenders, shoots once into the goal and scores a goal that hits the net of the goal in a cinematographic way, then celebrates facing the camera. Night match in a packed world championship stadium. Huge flags in the crowd show the [image2] logo, waving in the stands. Cinematic broadcast style, smooth camera, no extra balls. Photorealistic content. motion transfer, style reference, and editing from [video1]`
+      const seedancePrompt = `The character from [Image1] turns around and suddenly is in a world cup football stadium, runs forward with a single football, dribbles past two defenders, shoots once into the goal and scores a goal that hits the net of the goal in a cinematographic way, then celebrates facing the camera. Night match in a packed world championship stadium. Huge flags in the crowd show the [image2] logo, waving in the stands. Cinematic broadcast style, smooth camera, no extra balls. Motion transfer, style reference, and editing from [video1]. Hyper-realistic, 8k. All the football equipment, and all the logos you can see in the stadium are branded with the logo from [image2] and with "DoctorABC".`
 
       // Seedance input: using reference_images + reference_videos (multimodal)
       const input: any = {

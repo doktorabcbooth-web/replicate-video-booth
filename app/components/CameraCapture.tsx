@@ -143,13 +143,19 @@ export default function CameraCapture() {
     setProgress(100)
   }
 
+  const [emailSent, setEmailSent] = useState(false)
+
   async function sendEmailNow() {
     if (!overlayUrl) return alert('No preview available')
     setStatus('Sending email...')
     const emailResp = await fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: email, videoUrl: overlayUrl }) })
     const emailData = await emailResp.json()
-    if (emailData?.ok) setStatus('Email sent! Check your inbox (or spam).')
-    else setStatus('Email failed: ' + JSON.stringify(emailData))
+    if (emailData?.ok) {
+      setStatus('Email sent! Check your inbox (or spam).')
+      setEmailSent(true)
+    } else {
+      setStatus('Email failed: ' + JSON.stringify(emailData))
+    }
   }
 
   return (
@@ -238,6 +244,54 @@ export default function CameraCapture() {
           </div>
         )}
       </section>
+
+      {/* ── Email Confirmation Popup Modal ── */}
+      {emailSent && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(13, 44, 84, 0.65)',
+          backdropFilter: 'blur(8px)',
+          display: 'grid',
+          placeItems: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '24px',
+            padding: '30px',
+            width: '100%',
+            maxWidth: '400px',
+            textAlign: 'center',
+            boxShadow: 'var(--shadow)',
+            border: '1px solid rgba(13, 44, 84, 0.08)',
+            display: 'grid',
+            gap: '16px'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--brand-teal), var(--brand-teal-2))',
+              display: 'grid',
+              placeItems: 'center',
+              margin: '0 auto'
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--brand-dark)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--brand-dark)' }}>Email Sent!</h3>
+            <p style={{ margin: 0, fontSize: '14px', color: 'rgba(11, 11, 18, 0.7)', lineHeight: 1.5 }}>
+              Check your inbox (or spam folder). Your custom DoctorABC world cup video is on its way!
+            </p>
+            <button onClick={() => setEmailSent(false)} className="btn btn-primary" style={{ marginTop: '10px', width: '100%' }}>
+              Great, thank you!
+            </button>
+          </div>
+        </div>
+      )}
 
       <canvas ref={canvasRef} style={{ display: 'none' }} />
     </>
