@@ -98,8 +98,8 @@ export default function CameraCapture() {
 
     setStatus('Starting Seedance job...')
     // Use async create endpoint so browser doesn't block
-    // send both hosted URL and the data-uri so Seedance can use either hosted or data input
-    const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, imageDataUri: photo, duration: 5 }) })
+    // Only send the hosted imageUrl (from Supabase), not the huge data URI
+    const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, duration: 5 }) })
     const createData = await createResp.json()
     if (!createData?.ok || !createData?.id) return setStatus('Failed to start job: ' + (createData?.error || JSON.stringify(createData)))
     const id = createData.id

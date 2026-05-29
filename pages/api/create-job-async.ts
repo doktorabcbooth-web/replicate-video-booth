@@ -33,9 +33,9 @@ async function resolveModelVersion(modelIdOrName: string) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
-  const { imageUrl, imageDataUri, duration } = req.body
+  const { imageUrl, imageDataUri, duration, prompt } = req.body
   const imageSource = imageDataUri || imageUrl
-  if (!imageSource) return res.status(400).json({ error: 'missing image' })
+  if (!imageUrl) return res.status(400).json({ error: 'missing imageUrl' })
 
   try {
     const configuredModelRaw = (process.env.REPLICATE_MODEL_ID || process.env.REPLICATE_MODEL_VERSION || 'bytedance/seedance-2.0').trim()
@@ -62,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const referenceImage1 = imageUrl || imageDataUri // selfie from camera
       const referenceImage2 = 'https://res.cloudinary.com/do4hqtjxb/image/upload/v1779910689/Icon_uu7a2w.png' // logo
-      const referenceVideo1 = 'https://res.cloudinary.com/do4hqtjxb/video/upload/v1780060428/GlamAI_qlstmt.mp4' // motion reference
+      const referenceVideo1 = 'https://res.cloudinary.com/do4hqtjxb/video/upload/vc_h264/v1780060428/GlamAI_qlstmt.mp4' // motion reference
 
       const seedancePrompt = `[0-1s] The video starts with [image1], the character from [Image1] enters a world cup football stadium.
 [1-4s] The character from [image1] turns around and runs forward with a single football. The camera follows the character from behind as the character dribbles past two defenders, shoots once into the goal and scores a goal that hits the net of the goal in a cinematographic way. There are huge crowd flags with the [image2] on them. Night match in a packed world championship stadium. Huge flags in the crowd show the [image2] logo, waving in the stands. The logo from [image2] also appear in the stadium screens. The football also has the logo from [image2] on it.
