@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     `
 
     const r = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@example.com',
+      from: process.env.EMAIL_FROM || 'yourvideo@doktorabcworldcup.com',
       to,
       subject: 'Start your journey to a better health',
       html: emailHtml,

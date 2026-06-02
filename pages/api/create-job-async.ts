@@ -66,10 +66,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const input: any = {
         image: imageUrl,
         prompt: seedancePrompt,
-        duration: 5,
+        duration: 6,
         resolution: '480p',
         aspect_ratio: '9:16',
-        seed: 99,
+        seed: 90,
         generate_audio: false,
       }
 

@@ -6,7 +6,7 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || ''
 const REFERENCE_PLAYER_URL =
   'https://res.cloudinary.com/do4hqtjxb/image/upload/v1780410172/tmpycv2arjr_yrcntx.jpg'
 
-const GPT_IMAGE_PROMPT = `Place the person from image1 as the player of image2, wearing the same doktorabc clothes. Add a cool pair of sunglasses on their face. They won't be staring to the camera but to the goal, ready to score. Keep the style hyperrealistic.`
+const GPT_IMAGE_PROMPT = `Place the person from image1 as the player of image2, wearing the same doktorabc clothes. Add a cool pair of sunglasses on their face. They won't be staring to the camera but to the goal, ready to score. Keep the style hyperrealistic. Make the character in the new image be a bit further form the camera than in the original one.`
 
 export default async function handler(
   req: NextApiRequest,
