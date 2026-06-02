@@ -30,13 +30,13 @@ export default async function handler(
 
     console.log('GPT Image input:', JSON.stringify(input, null, 2))
 
-    const resp = await fetch('https://api.replicate.com/v1/predictions', {
+    const resp = await fetch('https://api.replicate.com/v1/models/openai/gpt-image-2/predictions', {
       method: 'POST',
       headers: {
         Authorization: `Token ${REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: 'openai/gpt-image-2', input }),
+      body: JSON.stringify({ input }),
     })
     const j = await resp.json()
     console.log('GPT Image response:', j)
