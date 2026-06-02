@@ -94,34 +94,74 @@ export default function CameraCapture() {
       return setStatus('Failed to upload selfie: ' + (uploadData?.error || 'unknown'))
     }
     setStatus('Selfie uploaded')
-    const imageUrl = uploadData.publicUrl
+    const selfieUrl = uploadData.publicUrl
+    setProgress(10)
 
-    setStatus('Starting Seedance job...')
-    // Use async create endpoint so browser doesn't block
-    // Only send the hosted imageUrl (from Supabase), not the huge data URI
-    const createResp = await fetch('/api/create-job-async', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl, duration: 5 }) })
-    const createData = await createResp.json()
-    if (!createData?.ok || !createData?.id) return setStatus('Failed to start job: ' + (createData?.error || JSON.stringify(createData)))
-    const id = createData.id
-    setStatus('Job started, polling status...')
-    setProgress(20)
+    // ── Step 1: GPT Image – composite selfie into footballer ──
+    setStatus('Creating your football player image...')
+    const gptResp = await fetch('/api/create-gpt-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl: selfieUrl })
+    })
+    const gptData = await gptResp.json()
+    if (!gptData?.ok || !gptData?.id) {
+      return setStatus('Failed to start image generation: ' + (gptData?.error || JSON.stringify(gptData)))
+    }
+    const gptId = gptData.id
+    setStatus('Generating football player image...')
+    setProgress(15)
 
-    // Poll status endpoint until succeeded
-    let finalStatus = null
+    // Poll GPT Image prediction
+    let gptImageUrl: string | null = null
     for (;;) {
-      // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, 3000))
-      // eslint-disable-next-line no-await-in-loop
+      const sResp = await fetch(`/api/prediction-status?id=${encodeURIComponent(gptId)}`)
+      const s = await sResp.json()
+      if (s.logs) setStatus(`Creating player image — ${s.status || ''} — ${s.logs.split('\n').slice(-2).join(' | ')}`)
+      else setStatus(`Creating player image — ${s.status || ''}`)
+      setProgress((p) => Math.min(45, p + 5))
+      if (s.status === 'succeeded' || s.state === 'succeeded') {
+        // GPT Image output is an array of URLs
+        const output = s.output
+        gptImageUrl = Array.isArray(output) ? output[0] : output
+        break
+      }
+      if (s.status === 'failed' || s.state === 'failed') {
+        return setStatus('Image generation failed\n\nError: ' + (s.error || JSON.stringify(s)))
+      }
+    }
+
+    if (!gptImageUrl) return setStatus('No image URL returned from GPT Image')
+    setStatus('Football player image ready! Starting video generation...')
+    setProgress(50)
+
+    // ── Step 2: Seedance – generate video from GPT image ──
+    const createResp = await fetch('/api/create-job-async', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl: gptImageUrl, duration: 5 })
+    })
+    const createData = await createResp.json()
+    if (!createData?.ok || !createData?.id) {
+      return setStatus('Failed to start video job: ' + (createData?.error || JSON.stringify(createData)))
+    }
+    const id = createData.id
+    setStatus('Video job started, generating...')
+    setProgress(55)
+
+    // Poll Seedance prediction
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 3000))
       const sResp = await fetch(`/api/prediction-status?id=${encodeURIComponent(id)}`)
       const s = await sResp.json()
-      finalStatus = s.status || s.state || s
-      // Try to show logs progress
-      if (s.logs) setStatus(`Processing — ${s.status || ''} — ${s.logs.split('\n').slice(-2).join(' | ')}`)
-      else setStatus(`Processing — ${s.status || ''}`)
-      // rough progress estimate from logs/status
-      setProgress((p) => Math.min(95, p + 8))
+      if (s.logs) setStatus(`Generating video — ${s.status || ''} — ${s.logs.split('\n').slice(-2).join(' | ')}`)
+      else setStatus(`Generating video — ${s.status || ''}`)
+      setProgress((p) => Math.min(95, p + 5))
       if (s.status === 'succeeded' || s.state === 'succeeded') break
-      if (s.status === 'failed' || s.state === 'failed') return setStatus('Prediction failed\n\nError: ' + (s.error || JSON.stringify(s)))
+      if (s.status === 'failed' || s.state === 'failed') {
+        return setStatus('Video generation failed\n\nError: ' + (s.error || JSON.stringify(s)))
+      }
     }
 
     setStatus('Finalizing prediction and uploading video...')
