@@ -1,12 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { Resend } from 'resend'
+import { createClient } from '@supabase/supabase-js'
 
 const resend = new Resend(process.env.RESEND_API_KEY || '')
+const SUPABASE_URL = process.env.SUPABASE_URL || ''
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
   const { to, videoUrl } = req.body
   if (!to || !videoUrl) return res.status(400).json({ error: 'missing to or videoUrl' })
+
+  // Force download URL using Cloudinary attachment flag
+  const downloadUrl = videoUrl.includes('/upload/') ? videoUrl.replace('/upload/', '/upload/fl_attachment/') : videoUrl
 
   try {
     const emailHtml = `
@@ -41,6 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               </a>
             </div>
             <a href="${videoUrl}" class="btn">Get your video</a>
+            <br/>
+            <a href="${downloadUrl}" class="btn" style="background: #0D2C54; margin-top: 10px; box-shadow: 0 4px 15px rgba(13, 44, 84, 0.15);">Download video</a>
             <div class="footer">
               &copy; ${new Date().getFullYear()} DoctorABC. All rights reserved.
             </div>
@@ -48,6 +57,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         </body>
       </html>
     `
+
+    // Save lead to database
+    try {
+      await supabase.from('leads').insert([{ email: to, video_url: videoUrl }])
+      console.log('Successfully saved lead to database:', { email: to, videoUrl })
+    } catch (dbErr) {
+      console.error('Database lead save error:', dbErr)
+    }
 
     const r = await resend.emails.send({
       from: process.env.EMAIL_FROM || 'yourvideo@doktorabcworldcup.com',

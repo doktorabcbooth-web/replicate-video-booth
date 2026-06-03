@@ -66,22 +66,22 @@ export default function CameraCapture() {
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
   async function submitJob() {
-    if (!photo) return alert('take a photo first')
+    if (!photo) return alert('Please capture or upload a photo first')
     if (!email) return alert('enter your email')
-    setStatus('Uploading selfie...')
+    setStatus('Uploading photo...')
     setProgress(5)
 
     // Extract base64 from data URI (format: data:image/jpeg;base64,BASE64_DATA)
     const b64 = photo.split(',')[1]
-    if (!b64) return setStatus('Failed to encode selfie')
+    if (!b64) return setStatus('Failed to encode photo')
     
-    console.log('Uploading with filename:', `selfie-${Date.now()}.jpg`, 'b64 length:', b64.length)
+    console.log('Uploading with filename:', `photo-${Date.now()}.jpg`, 'b64 length:', b64.length)
     
-    const selfieFilename = `selfie-${Date.now()}.jpg`
+    const photoFilename = `photo-${Date.now()}.jpg`
     const uploadResp = await fetch('/api/upload-to-supabase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: selfieFilename, b64, contentType: 'image/jpeg' })
+      body: JSON.stringify({ filename: photoFilename, b64, contentType: 'image/jpeg' })
     })
     
     console.log('Upload response status:', uploadResp.status)
@@ -91,18 +91,18 @@ export default function CameraCapture() {
     
     if (!uploadData?.ok) {
       console.error('Upload failed:', uploadData)
-      return setStatus('Failed to upload selfie: ' + (uploadData?.error || 'unknown'))
+      return setStatus('Failed to upload photo: ' + (uploadData?.error || 'unknown'))
     }
-    setStatus('Selfie uploaded')
-    const selfieUrl = uploadData.publicUrl
+    setStatus('Photo uploaded')
+    const photoUrl = uploadData.publicUrl
     setProgress(10)
 
-    // ── Step 1: GPT Image – composite selfie into footballer ──
+    // ── Step 1: GPT Image – composite photo into footballer ──
     setStatus('Creating your football player image...')
     const gptResp = await fetch('/api/create-gpt-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageUrl: selfieUrl })
+      body: JSON.stringify({ imageUrl: photoUrl })
     })
     const gptData = await gptResp.json()
     if (!gptData?.ok || !gptData?.id) {
@@ -212,38 +212,36 @@ export default function CameraCapture() {
             </div>
           </div>
 
-          <div className="button-row" style={{ gridTemplateColumns: cameraStarted ? '1fr 1fr' : '1fr', width: '100%', maxWidth: '250px' }}>
+          <div className="button-row" style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '250px' }}>
             {!cameraStarted ? (
-              <button onClick={() => startCamera('user')} className="btn btn-primary">Start Camera</button>
+              <>
+                <button onClick={() => startCamera('environment')} className="btn btn-primary">
+                  Take Photo of your Friend
+                </button>
+                <label className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--brand-neutral)', color: 'var(--brand-dark)' }}>
+                  Upload your Photo
+                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                </label>
+              </>
             ) : (
               <>
                 <button onClick={takePhoto} className="btn btn-primary">Take Photo</button>
-                <button onClick={toggleCamera} className="btn btn-primary" style={{ background: 'var(--brand-dark)', color: '#fff' }}>Switch Camera</button>
+                <button onClick={() => {
+                  const stream = videoRef.current?.srcObject as MediaStream | null
+                  if (stream) stream.getTracks().forEach(track => track.stop())
+                  setCameraStarted(false)
+                }} className="btn btn-primary" style={{ background: '#e5e9f0', color: 'var(--brand-dark)' }}>Cancel</button>
               </>
             )}
           </div>
-
-          <div style={{ width: '100%', maxWidth: '250px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {cameraStarted && (
-              <button onClick={() => {
-                const stream = videoRef.current?.srcObject as MediaStream | null
-                if (stream) stream.getTracks().forEach(track => track.stop())
-                setCameraStarted(false)
-              }} className="btn btn-primary" style={{ background: '#e5e9f0', color: 'var(--brand-dark)' }}>Stop Camera</button>
-            )}
-            <label className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--brand-neutral)', color: 'var(--brand-dark)' }}>
-              Upload Image
-              <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-            </label>
-          </div>
         </div>
 
-        {/* ── Selfie Preview ── */}
+        {/* ── Selected Photo Preview ── */}
         {photo && (
           <div className="preview-wrap">
-            <p className="section-label">Selfie</p>
+            <p className="section-label">Your Photo</p>
             <div className="preview-avatar">
-              <img src={photo} alt="Your selfie" />
+              <img src={photo} alt="Your photo" />
             </div>
           </div>
         )}
@@ -277,8 +275,23 @@ export default function CameraCapture() {
           <div className="result-preview">
             <p className="section-label">Preview result</p>
             <video src={overlayUrl} controls playsInline />
-            <div className="result-actions">
+            <div className="result-actions" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button onClick={sendEmailNow} className="btn-send">Send Email</button>
+              <a 
+                href={overlayUrl.includes('/upload/') ? overlayUrl.replace('/upload/', '/upload/fl_attachment/') : overlayUrl} 
+                download="doctorabc-football-goal.mp4" 
+                className="btn btn-primary"
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  textDecoration: 'none',
+                  background: 'var(--brand-teal)', 
+                  color: 'var(--brand-dark)' 
+                }}
+              >
+                Download Video
+              </a>
               <a href={overlayUrl} target="_blank" rel="noreferrer" className="btn-link">Open in new tab</a>
             </div>
           </div>
