@@ -48,14 +48,24 @@ export default function CameraCapture() {
     ctx.drawImage(videoRef.current, 0, 0)
     const data = canvasRef.current.toDataURL('image/jpeg')
     setPhoto(data)
+    setStatus('📸 Photo taken!')
+    setProgress(0)
   }
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    // Stop any running camera stream
+    const currentStream = videoRef.current?.srcObject as MediaStream | null
+    if (currentStream) currentStream.getTracks().forEach(track => track.stop())
+    setCameraStarted(false)
+    setProgress(0)
+    setOverlayUrl(null)
+    setEmailSent(false)
     const reader = new FileReader()
     reader.onloadend = () => {
       setPhoto(reader.result as string)
+      setStatus('📸 Photo selected!')
     }
     reader.readAsDataURL(file)
   }
@@ -177,26 +187,26 @@ export default function CameraCapture() {
     const procData = await procResp.json()
     if (!procData?.url) return setStatus('Failed to create overlay URL')
 
-    // save overlay url for preview; user can review before sending
     setOverlayUrl(procData.url)
-    setStatus('Preview ready — review below and press Send email to deliver')
     setProgress(100)
+
+    // Auto-send email
+    setStatus('Sending email...')
+    try {
+      const emailResp = await fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: email, videoUrl: procData.url }) })
+      const emailData = await emailResp.json()
+      if (emailData?.ok) {
+        setStatus('✅ Video ready & email sent! Check your inbox.')
+        setEmailSent(true)
+      } else {
+        setStatus('⚠️ Video ready but email failed: ' + JSON.stringify(emailData))
+      }
+    } catch (emailErr) {
+      setStatus('⚠️ Video ready but email failed: ' + String(emailErr))
+    }
   }
 
   const [emailSent, setEmailSent] = useState(false)
-
-  async function sendEmailNow() {
-    if (!overlayUrl) return alert('No preview available')
-    setStatus('Sending email...')
-    const emailResp = await fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: email, videoUrl: overlayUrl }) })
-    const emailData = await emailResp.json()
-    if (emailData?.ok) {
-      setStatus('Email sent! Check your inbox (or spam).')
-      setEmailSent(true)
-    } else {
-      setStatus('Email failed: ' + JSON.stringify(emailData))
-    }
-  }
 
   return (
     <>
@@ -276,7 +286,6 @@ export default function CameraCapture() {
             <p className="section-label">Preview result</p>
             <video src={overlayUrl} controls playsInline />
             <div className="result-actions" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button onClick={sendEmailNow} className="btn-send">Send Email</button>
               <a 
                 href={overlayUrl.includes('/upload/') ? overlayUrl.replace('/upload/', '/upload/fl_attachment/') : overlayUrl} 
                 download="doctorabc-football-goal.mp4" 

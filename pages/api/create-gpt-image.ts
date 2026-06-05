@@ -23,7 +23,7 @@ export default async function handler(
       input_images: [imageUrl, REFERENCE_PLAYER_URL],
       aspect_ratio: '3:2',
       number_of_images: 1,
-      quality: 'medium',
+      quality: 'high',
       output_compression: 90,
       output_format: 'png',
     }

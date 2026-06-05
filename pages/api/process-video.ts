@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Center-bottom placement matching "Created by Glam AI" layout.
     // To add a clean white background behind the SVG logo without cut edges, we pad the overlay image with a white background.
     // Cloudinary chain: w_210,h_75,c_pad,b_white,r_max creates a clean rounded white pill containing the SVG.
-    const finalUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/video/upload/w_480,h_853,c_fill/l_doktorabc-logo_uwqswp,w_210,h_75,c_pad,b_white,r_max,g_south,y_40/${videoPublicId}.mp4`
+    const finalUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/video/upload/w_720,h_1280,c_fill/l_doktorabc-logo_uwqswp,w_160,h_55,c_pad,b_white,r_max,g_south,y_50/${videoPublicId}.mp4`
 
     // Save to database
     try {
