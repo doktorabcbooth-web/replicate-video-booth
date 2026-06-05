@@ -114,9 +114,16 @@ export default function CameraCapture() {
           setStatus('📸 Photo selected!')
         }
       }
+      img.onerror = (err) => {
+        console.error('Image loading/decoding failed, falling back to original data URL', err)
+        setPhoto(reader.result as string)
+        setStatus('📸 Photo selected!')
+      }
       img.src = reader.result as string
     }
     reader.readAsDataURL(file)
+    // Clear input value so selecting the same file triggers change handler again
+    e.target.value = ''
   }
 
   const [email, setEmail] = useState('')
