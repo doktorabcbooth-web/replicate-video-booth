@@ -43,10 +43,27 @@ export default function CameraCapture() {
     if (!videoRef.current || !canvasRef.current) return
     const ctx = canvasRef.current.getContext('2d')
     if (!ctx) return
-    canvasRef.current.width = videoRef.current.videoWidth
-    canvasRef.current.height = videoRef.current.videoHeight
-    ctx.drawImage(videoRef.current, 0, 0)
-    const data = canvasRef.current.toDataURL('image/jpeg')
+    const videoWidth = videoRef.current.videoWidth
+    const videoHeight = videoRef.current.videoHeight
+    
+    // Resize photo to keep payload small and fast to upload
+    const maxDim = 1024
+    let width = videoWidth
+    let height = videoHeight
+    if (width > maxDim || height > maxDim) {
+      if (width > height) {
+        height = Math.round((height * maxDim) / width)
+        width = maxDim
+      } else {
+        width = Math.round((width * maxDim) / height)
+        height = maxDim
+      }
+    }
+
+    canvasRef.current.width = width
+    canvasRef.current.height = height
+    ctx.drawImage(videoRef.current, 0, 0, width, height)
+    const data = canvasRef.current.toDataURL('image/jpeg', 0.85)
     setPhoto(data)
     setStatus('📸 Photo taken!')
     setProgress(0)
@@ -62,10 +79,42 @@ export default function CameraCapture() {
     setProgress(0)
     setOverlayUrl(null)
     setEmailSent(false)
+    setStatus('Compressing photo...')
+
     const reader = new FileReader()
     reader.onloadend = () => {
-      setPhoto(reader.result as string)
-      setStatus('📸 Photo selected!')
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const maxDim = 1024
+        let width = img.width
+        let height = img.height
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width)
+            width = maxDim
+          } else {
+            width = Math.round((width * maxDim) / height)
+            height = maxDim
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height)
+          // Compress to JPEG with 0.85 quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
+          setPhoto(compressedDataUrl)
+          setStatus('📸 Photo uploaded & optimized!')
+        } else {
+          setPhoto(reader.result as string)
+          setStatus('📸 Photo selected!')
+        }
+      }
+      img.src = reader.result as string
     }
     reader.readAsDataURL(file)
   }
