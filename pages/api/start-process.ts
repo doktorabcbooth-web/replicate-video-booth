@@ -40,10 +40,23 @@ export default async function handler(
       console.warn('Supabase lead insertion threw an error (falling back to temporary tracking ID):', err)
     }
 
-    // Determine base URL for webhooks
-    const protocol = req.headers['x-forwarded-proto'] || 'https'
-    const host = req.headers['x-forwarded-host'] || req.headers.host
-    const baseUrl = process.env.APP_URL || `${protocol}://${host}`
+    // Determine base URL for webhooks dynamically.
+    // If APP_URL points to localhost but the request came from a public URL (or vice-versa),
+    // override it using request headers.
+    const host = (req.headers['x-forwarded-host'] || req.headers.host || '') as string
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1')
+    let baseUrl = process.env.APP_URL || ''
+
+    if (!baseUrl || (baseUrl.includes('localhost') && !isLocalhost)) {
+      const protocol = req.headers['x-forwarded-proto'] || 'https'
+      baseUrl = `${protocol}://${host}`
+    }
+
+    // Ensure public webhooks always use HTTPS
+    if (!isLocalhost && baseUrl.startsWith('http://')) {
+      baseUrl = baseUrl.replace('http://', 'https://')
+    }
+
     const webhookUrl = `${baseUrl}/api/replicate-webhook?leadId=${leadId}&step=gpt-image&email=${encodeURIComponent(email)}`
 
     console.log('Registering webhook URL:', webhookUrl)

@@ -65,10 +65,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ ok: true, message: 'processing' })
     }
 
-    // Determine base URL for subsequent webhooks
-    const protocol = req.headers['x-forwarded-proto'] || 'https'
-    const host = req.headers['x-forwarded-host'] || req.headers.host
-    const baseUrl = process.env.APP_URL || `${protocol}://${host}`
+    // Determine base URL for subsequent webhooks dynamically.
+    const host = (req.headers['x-forwarded-host'] || req.headers.host || '') as string
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1')
+    let baseUrl = process.env.APP_URL || ''
+
+    if (!baseUrl || (baseUrl.includes('localhost') && !isLocalhost)) {
+      const protocol = req.headers['x-forwarded-proto'] || 'https'
+      baseUrl = `${protocol}://${host}`
+    }
+
+    if (!isLocalhost && baseUrl.startsWith('http://')) {
+      baseUrl = baseUrl.replace('http://', 'https://')
+    }
 
     // 2. Handle Step: GPT Image
     if (step === 'gpt-image') {
