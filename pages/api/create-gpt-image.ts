@@ -6,7 +6,7 @@ const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN || ''
 const REFERENCE_PLAYER_URL =
   'https://res.cloudinary.com/do4hqtjxb/image/upload/v1780410172/tmpycv2arjr_yrcntx.jpg'
 
-const GPT_IMAGE_PROMPT = `Replace the player from image2 with the person from image1 but wearing the same doktorabc clothes. Add a cool pair of cycling sunglasses on their face. They won't be staring to the camera but to the goal, ready to score. Keep the style photorealistic. Make sure the person looks like them in real life and that the head is keeping realistic proportion with the body and perspective of the image. Make the player be a bit further from the camera than in the reference image.`
+const GPT_IMAGE_PROMPT = `Replace the player from image2 with the person from image1 but wearing the same doktorabc clothes. Add a cool pair of cycling sunglasses on their face. They won't be staring to the camera but to the goal, ready to score. Keep the style photorealistic. Make sure the person looks like them in real life and that the head is keeping realistic proportion with the body and perspective of the image.`
 
 export default async function handler(
   req: NextApiRequest,
@@ -23,7 +23,7 @@ export default async function handler(
       input_images: [imageUrl, REFERENCE_PLAYER_URL],
       aspect_ratio: '3:2',
       number_of_images: 1,
-      quality: 'high',
+      quality: 'medium',
       output_compression: 90,
       output_format: 'png',
     }
