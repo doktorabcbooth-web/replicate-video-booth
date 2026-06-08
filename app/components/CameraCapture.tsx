@@ -262,6 +262,11 @@ export default function CameraCapture() {
               </>
             )}
           </div>
+          {status && (
+            <div className="status-text" style={{ marginTop: '12px', textAlign: 'center', width: '100%', maxWidth: '250px', fontSize: '14px', fontWeight: 500 }}>
+              {status}
+            </div>
+          )}
         </div>
 
         {/* ── Selected Photo Preview ── */}
@@ -295,8 +300,7 @@ export default function CameraCapture() {
           <div className="progress-bar" style={{ width: `${progress}%` }} />
         </div>
 
-        {/* ── Status ── */}
-        {status && <div className="status-text">{status}</div>}
+
 
         {/* ── Result Preview ── */}
         {overlayUrl && (
