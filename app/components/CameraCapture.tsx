@@ -133,7 +133,14 @@ export default function CameraCapture() {
 
   async function submitJob() {
     if (!photo) return alert('Please capture or upload a photo first')
-    if (!email) return alert('enter your email')
+    if (!email) return alert('Please enter your email address')
+
+    // Simple email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return alert('Please enter a valid email address')
+    }
+
     setStatus('Uploading photo...')
     setProgress(5)
 
@@ -144,121 +151,76 @@ export default function CameraCapture() {
     console.log('Uploading with filename:', `photo-${Date.now()}.jpg`, 'b64 length:', b64.length)
     
     const photoFilename = `photo-${Date.now()}.jpg`
-    const uploadResp = await fetch('/api/upload-to-supabase', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: photoFilename, b64, contentType: 'image/jpeg' })
-    })
-    
-    console.log('Upload response status:', uploadResp.status)
-    
-    const uploadData = await uploadResp.json()
-    console.log('Upload response data:', uploadData)
-    
-    if (!uploadData?.ok) {
-      console.error('Upload failed:', uploadData)
-      return setStatus('Failed to upload photo: ' + (uploadData?.error || 'unknown'))
-    }
-    setStatus('Photo uploaded')
-    const photoUrl = uploadData.publicUrl
-    setProgress(10)
-
-    // ── Step 1: GPT Image – composite photo into footballer ──
-    setStatus('Creating your football player image...')
-    const gptResp = await fetch('/api/create-gpt-image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageUrl: photoUrl })
-    })
-    const gptData = await gptResp.json()
-    if (!gptData?.ok || !gptData?.id) {
-      return setStatus('Failed to start image generation: ' + (gptData?.error || JSON.stringify(gptData)))
-    }
-    const gptId = gptData.id
-    setStatus('Generating football player image...')
-    setProgress(15)
-
-    // Poll GPT Image prediction
-    let gptImageUrl: string | null = null
-    for (;;) {
-      await new Promise((r) => setTimeout(r, 3000))
-      const sResp = await fetch(`/api/prediction-status?id=${encodeURIComponent(gptId)}`)
-      const s = await sResp.json()
-      if (s.logs) setStatus(`Creating player image — ${s.status || ''} — ${s.logs.split('\n').slice(-2).join(' | ')}`)
-      else setStatus(`Creating player image — ${s.status || ''}`)
-      setProgress((p) => Math.min(45, p + 5))
-      if (s.status === 'succeeded' || s.state === 'succeeded') {
-        // GPT Image output is an array of URLs
-        const output = s.output
-        gptImageUrl = Array.isArray(output) ? output[0] : output
-        break
-      }
-      if (s.status === 'failed' || s.state === 'failed') {
-        return setStatus('Image generation failed\n\nError: ' + (s.error || JSON.stringify(s)))
-      }
-    }
-
-    if (!gptImageUrl) return setStatus('No image URL returned from GPT Image')
-    setStatus('Football player image ready! Starting video generation...')
-    setProgress(50)
-
-    // ── Step 2: Seedance – generate video from GPT image ──
-    const createResp = await fetch('/api/create-job-async', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageUrl: gptImageUrl, duration: 5 })
-    })
-    const createData = await createResp.json()
-    if (!createData?.ok || !createData?.id) {
-      return setStatus('Failed to start video job: ' + (createData?.error || JSON.stringify(createData)))
-    }
-    const id = createData.id
-    setStatus('Video job started, generating...')
-    setProgress(55)
-
-    // Poll Seedance prediction
-    for (;;) {
-      await new Promise((r) => setTimeout(r, 3000))
-      const sResp = await fetch(`/api/prediction-status?id=${encodeURIComponent(id)}`)
-      const s = await sResp.json()
-      if (s.logs) setStatus(`Generating video — ${s.status || ''} — ${s.logs.split('\n').slice(-2).join(' | ')}`)
-      else setStatus(`Generating video — ${s.status || ''}`)
-      setProgress((p) => Math.min(95, p + 5))
-      if (s.status === 'succeeded' || s.state === 'succeeded') break
-      if (s.status === 'failed' || s.state === 'failed') {
-        return setStatus('Video generation failed\n\nError: ' + (s.error || JSON.stringify(s)))
-      }
-    }
-
-    setStatus('Finalizing prediction and uploading video...')
-    setProgress(95)
-    const finResp = await fetch('/api/finalize-prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
-    const fin = await finResp.json()
-    if (!fin?.ok || !fin?.publicId) return setStatus('Finalize failed: ' + JSON.stringify(fin))
-
-    setStatus('Creating overlay URL...')
-    setProgress(98)
-    const logoPublicId = process.env.NEXT_PUBLIC_CLOUDINARY_LOGO_ID || 'Icon_uu7a2w'
-    const procResp = await fetch('/api/process-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoPublicId: fin.publicId, logoPublicId }) })
-    const procData = await procResp.json()
-    if (!procData?.url) return setStatus('Failed to create overlay URL')
-
-    setOverlayUrl(procData.url)
-    setProgress(100)
-
-    // Auto-send email
-    setStatus('Sending email...')
+    let photoUrl = ''
     try {
-      const emailResp = await fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: email, videoUrl: procData.url }) })
-      const emailData = await emailResp.json()
-      if (emailData?.ok) {
-        setStatus('✅ Video ready & email sent! Check your inbox.')
-        setEmailSent(true)
-      } else {
-        setStatus('⚠️ Video ready but email failed: ' + JSON.stringify(emailData))
+      const uploadResp = await fetch('/api/upload-to-supabase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: photoFilename, b64, contentType: 'image/jpeg' })
+      })
+      
+      const uploadData = await uploadResp.json()
+      if (!uploadData?.ok) {
+        console.error('Upload failed:', uploadData)
+        return setStatus('Failed to upload photo: ' + (uploadData?.error || 'unknown'))
       }
-    } catch (emailErr) {
-      setStatus('⚠️ Video ready but email failed: ' + String(emailErr))
+      photoUrl = uploadData.publicUrl
+      setStatus('Photo uploaded! Starting video generation...')
+      setProgress(10)
+    } catch (uploadErr: any) {
+      console.error('Upload error:', uploadErr)
+      return setStatus('Failed to upload photo: ' + (uploadErr.message || 'connection error'))
+    }
+
+    // Start background processing pipeline
+    try {
+      const startResp = await fetch('/api/start-process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: photoUrl, email })
+      })
+      const startData = await startResp.json()
+      if (!startResp.ok || !startData?.ok || !startData?.leadId) {
+        return setStatus('Failed to start processing: ' + (startData?.error || 'unknown'))
+      }
+
+      const leadId = startData.leadId
+      setStatus('🎥 Creating video in the background! You can close this window now — we will email the video once it is ready.')
+      setProgress(15)
+
+      // Simulate UI progress bar while polling
+      let currentProgress = 15
+      const progressInterval = setInterval(() => {
+        currentProgress = Math.min(95, currentProgress + Math.random() * 2)
+        setProgress(Math.floor(currentProgress))
+      }, 2000)
+
+      // Poll status endpoint
+      const pollInterval = setInterval(async () => {
+        try {
+          const sResp = await fetch(`/api/job-status?leadId=${encodeURIComponent(leadId)}`)
+          if (!sResp.ok) return
+          const s = await sResp.json()
+          if (s.status === 'completed' && s.videoUrl) {
+            clearInterval(progressInterval)
+            clearInterval(pollInterval)
+            setOverlayUrl(s.videoUrl)
+            setProgress(100)
+            setStatus('✅ Video ready & email sent! Check your inbox.')
+            setEmailSent(true)
+          } else if (s.status === 'failed') {
+            clearInterval(progressInterval)
+            clearInterval(pollInterval)
+            setStatus('❌ Video generation failed. Please try again with a different photo.')
+          }
+        } catch (pollErr) {
+          console.error('Polling error:', pollErr)
+        }
+      }, 3000)
+
+    } catch (err: any) {
+      console.error('Start process error:', err)
+      setStatus('Failed to start process: ' + (err.message || 'connection error'))
     }
   }
 
