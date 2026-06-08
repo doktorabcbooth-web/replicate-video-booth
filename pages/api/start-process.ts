@@ -23,24 +23,28 @@ export default async function handler(
 
   try {
     // 1. Insert record into leads table to track processing state
-    const { data, error: dbError } = await supabase
-      .from('leads')
-      .insert([{ email, video_url: 'processing' }])
-      .select()
+    let leadId = `temp-${Date.now()}`
+    try {
+      const { data, error: dbError } = await supabase
+        .from('leads')
+        .insert([{ email, video_url: 'processing' }])
+        .select()
 
-    if (dbError || !data || data.length === 0) {
-      console.error('Failed to create lead record:', dbError)
-      return res.status(500).json({ error: 'failed to initialize processing tracking' })
+      if (dbError || !data || data.length === 0) {
+        console.warn('Failed to create lead record (falling back to temporary tracking ID):', dbError)
+      } else {
+        leadId = String(data[0].id)
+        console.log(`Created lead tracking record with ID: ${leadId} for ${email}`)
+      }
+    } catch (err) {
+      console.warn('Supabase lead insertion threw an error (falling back to temporary tracking ID):', err)
     }
-
-    const leadId = data[0].id
-    console.log(`Created lead tracking record with ID: ${leadId} for ${email}`)
 
     // Determine base URL for webhooks
     const protocol = req.headers['x-forwarded-proto'] || 'https'
     const host = req.headers['x-forwarded-host'] || req.headers.host
     const baseUrl = process.env.APP_URL || `${protocol}://${host}`
-    const webhookUrl = `${baseUrl}/api/replicate-webhook?leadId=${leadId}&step=gpt-image`
+    const webhookUrl = `${baseUrl}/api/replicate-webhook?leadId=${leadId}&step=gpt-image&email=${encodeURIComponent(email)}`
 
     console.log('Registering webhook URL:', webhookUrl)
 

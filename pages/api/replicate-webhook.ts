@@ -40,11 +40,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Replicate webhooks are POST requests
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { leadId, step } = req.query
+  const { leadId, step, email: queryEmail } = req.query
   if (!leadId || !step) {
     console.error('Missing leadId or step in webhook query params')
     return res.status(400).json({ error: 'missing leadId or step' })
   }
+  const emailParam = Array.isArray(queryEmail) ? queryEmail[0] : (queryEmail || '')
 
   const prediction = req.body
   console.log(`Webhook received for Lead: ${leadId}, Step: ${step}, Status: ${prediction?.status}`)
@@ -53,10 +54,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 1. Check if prediction failed or was canceled
     if (prediction?.status === 'failed' || prediction?.status === 'canceled') {
       console.error(`Prediction failed/canceled for lead ${leadId}:`, prediction?.error)
-      await supabase
-        .from('leads')
-        .update({ video_url: 'failed' })
-        .eq('id', leadId)
+      try {
+        await supabase.from('leads').update({ video_url: 'failed' }).eq('id', leadId)
+      } catch (e) { console.warn('DB update failed (non-blocking):', e) }
       return res.status(200).json({ ok: false, message: 'Prediction failed updated' })
     }
 
@@ -77,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!gptImageUrl) {
         console.error(`No output image URL in GPT Image step for lead ${leadId}`)
-        await supabase.from('leads').update({ video_url: 'failed' }).eq('id', leadId)
+        try { await supabase.from('leads').update({ video_url: 'failed' }).eq('id', leadId) } catch (e) { /* non-blocking */ }
         return res.status(500).json({ error: 'No output image URL from GPT Image step' })
       }
 
@@ -138,8 +138,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // Append webhook config
-      bodyPayload.webhook = `${baseUrl}/api/replicate-webhook?leadId=${leadId}&step=video-generation`
+      // Append webhook config — pass email forward
+      bodyPayload.webhook = `${baseUrl}/api/replicate-webhook?leadId=${leadId}&step=video-generation&email=${encodeURIComponent(emailParam)}`
       bodyPayload.webhook_events_filter = ['completed']
 
       const endpoint = configuredModel.includes('minimax/video-01') 
@@ -160,7 +160,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const videoData = await videoResp.json()
       if (!videoResp.ok) {
         console.error('Failed to trigger video generation prediction:', videoData)
-        await supabase.from('leads').update({ video_url: 'failed' }).eq('id', leadId)
+        try { await supabase.from('leads').update({ video_url: 'failed' }).eq('id', leadId) } catch (e) { /* non-blocking */ }
         return res.status(videoResp.status).json({ error: videoData.detail || 'failed to start video' })
       }
 
@@ -187,7 +187,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!outputUrl) {
         console.error(`No output video URL in video-generation step for lead ${leadId}`)
-        await supabase.from('leads').update({ video_url: 'failed' }).eq('id', leadId)
+        try { await supabase.from('leads').update({ video_url: 'failed' }).eq('id', leadId) } catch (e) { /* non-blocking */ }
         return res.status(500).json({ error: 'No output video URL from video-generation' })
       }
 
@@ -203,19 +203,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log(`Cloudinary overlay generated: ${finalUrl}`)
 
-      // Retrieve user's email from the DB lead record
-      const { data: leadRecord, error: getLeadError } = await supabase
-        .from('leads')
-        .select('email')
-        .eq('id', leadId)
-        .single()
-
-      if (getLeadError || !leadRecord) {
-        console.error(`Could not retrieve lead email for ID: ${leadId}`, getLeadError)
-        return res.status(500).json({ error: 'Lead record not found' })
+      // Get email from query params (primary) or DB fallback
+      let toEmail = emailParam
+      if (!toEmail) {
+        try {
+          const { data: leadRecord } = await supabase
+            .from('leads')
+            .select('email')
+            .eq('id', leadId)
+            .single()
+          toEmail = leadRecord?.email || ''
+        } catch (e) {
+          console.warn('DB email lookup failed:', e)
+        }
       }
 
-      const toEmail = leadRecord.email
+      if (!toEmail) {
+        console.error(`No email available for lead ${leadId}`)
+        return res.status(500).json({ error: 'No email available to send video' })
+      }
 
       // Save to database
       try {

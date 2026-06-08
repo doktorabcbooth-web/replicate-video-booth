@@ -13,16 +13,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'missing leadId' })
   }
 
+  // If leadId is a temporary ID (DB was unavailable at start), we can't query status
+  const leadIdStr = Array.isArray(leadId) ? leadId[0] : leadId
+  if (leadIdStr.startsWith('temp-')) {
+    return res.status(200).json({ status: 'processing', videoUrl: null })
+  }
+
   try {
     const { data, error } = await supabase
       .from('leads')
       .select('video_url')
-      .eq('id', leadId)
+      .eq('id', leadIdStr)
       .single()
 
     if (error || !data) {
-      console.error(`Error fetching job status for lead ID: ${leadId}`, error)
-      return res.status(404).json({ error: 'Job not found' })
+      // Table may not exist or record not found — return processing so frontend doesn't error
+      console.warn(`Job status lookup failed for lead ID: ${leadIdStr}`, error)
+      return res.status(200).json({ status: 'processing', videoUrl: null })
     }
 
     const videoUrl = data.video_url
@@ -34,10 +41,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else if (videoUrl && videoUrl.startsWith('http')) {
       return res.status(200).json({ status: 'completed', videoUrl })
     } else {
-      return res.status(200).json({ status: 'unknown', videoUrl: null })
+      return res.status(200).json({ status: 'processing', videoUrl: null })
     }
   } catch (err: any) {
     console.error('job-status error:', err)
-    return res.status(500).json({ error: err.message || 'Server error fetching status' })
+    return res.status(200).json({ status: 'processing', videoUrl: null })
   }
 }

@@ -262,12 +262,14 @@ export default function CameraCapture() {
               </>
             )}
           </div>
-          {status && (
-            <div className="status-text" style={{ marginTop: '12px', textAlign: 'center', width: '100%', maxWidth: '250px', fontSize: '14px', fontWeight: 500 }}>
-              {status}
-            </div>
-          )}
         </div>
+
+        {/* ── Status ── */}
+        {status && (
+          <div className="status-text" style={{ textAlign: 'center', fontSize: '14px', fontWeight: 500, padding: '12px 0' }}>
+            {status}
+          </div>
+        )}
 
         {/* ── Selected Photo Preview ── */}
         {photo && (
