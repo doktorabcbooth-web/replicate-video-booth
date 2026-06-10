@@ -15,7 +15,10 @@ export default function Home() {
         </div>
         <h1 className="title">⚽️ Video-Booth 🏆</h1>
         <div className="marquee-container">
-          <p className="marquee-text">⚽️🏆📱 Erstelle ein KI-Video von dir und gewinne ein iPhone 17 Pro Max! ⚽️🏆📱</p>
+          <div className="marquee-content">
+            <span className="marquee-text">⚽️🏆📱 Erstelle ein KI-Video von dir und gewinne ein iPhone 17 Pro Max! ⚽️🏆📱</span>
+            <span className="marquee-text">⚽️🏆📱 Erstelle ein KI-Video von dir und gewinne ein iPhone 17 Pro Max! ⚽️🏆📱</span>
+          </div>
         </div>
       </div>
 

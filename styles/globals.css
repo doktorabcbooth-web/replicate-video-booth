@@ -390,18 +390,23 @@ body {
   width: 100%;
   padding: 6px 0;
   box-sizing: border-box;
+  display: flex;
+}
+
+.marquee-content {
+  display: inline-flex;
+  gap: 2rem;
+  animation: marquee-scroll 15s linear infinite;
 }
 
 .marquee-text {
-  display: inline-block;
   font-weight: 700;
   font-size: clamp(1rem, 0.95rem + 0.5vw, 1.25rem); /* Bigger and bold */
   color: var(--brand-dark);
-  animation: marquee-scroll 18s linear infinite;
-  padding-left: 10%;
+  white-space: nowrap;
 }
 
 @keyframes marquee-scroll {
-  0% { transform: translate3d(100%, 0, 0); }
-  100% { transform: translate3d(-100%, 0, 0); }
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
