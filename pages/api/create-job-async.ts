@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         image: imageUrl,
         prompt: seedancePrompt,
         duration: 6,
-        resolution: '720p',
+        resolution: '480p',
         aspect_ratio: '9:16',
         seed: 90,
         generate_audio: false,
