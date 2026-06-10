@@ -29,7 +29,7 @@ export default function CameraCapture() {
         await videoRef.current.play()
         setCameraStarted(true)
       } catch (fallbackErr) {
-        alert('Could not start camera: ' + String(fallbackErr))
+        alert('Kamera konnte nicht gestartet werden: ' + String(fallbackErr))
       }
     }
   }
@@ -65,7 +65,7 @@ export default function CameraCapture() {
     ctx.drawImage(videoRef.current, 0, 0, width, height)
     const data = canvasRef.current.toDataURL('image/jpeg', 0.85)
     setPhoto(data)
-    setStatus('📸 Photo taken!')
+    setStatus('📸 Foto aufgenommen!')
     setProgress(0)
   }
 
@@ -79,7 +79,7 @@ export default function CameraCapture() {
     setProgress(0)
     setOverlayUrl(null)
     setEmailSent(false)
-    setStatus('Compressing photo...')
+    setStatus('Foto wird komprimiert...')
 
     const reader = new FileReader()
     reader.onloadend = () => {
@@ -108,16 +108,16 @@ export default function CameraCapture() {
           // Compress to JPEG with 0.85 quality
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
           setPhoto(compressedDataUrl)
-          setStatus('📸 Photo uploaded & optimized!')
+          setStatus('📸 Foto hochgeladen & optimiert!')
         } else {
           setPhoto(reader.result as string)
-          setStatus('📸 Photo selected!')
+          setStatus('📸 Foto ausgewählt!')
         }
       }
       img.onerror = (err) => {
         console.error('Image loading/decoding failed, falling back to original data URL', err)
         setPhoto(reader.result as string)
-        setStatus('📸 Photo selected!')
+        setStatus('📸 Foto ausgewählt!')
       }
       img.src = reader.result as string
     }
@@ -132,21 +132,21 @@ export default function CameraCapture() {
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
   async function submitJob() {
-    if (!photo) return alert('Please capture or upload a photo first')
-    if (!email) return alert('Please enter your email address')
+    if (!photo) return alert('Bitte machen oder laden Sie zuerst ein Foto hoch')
+    if (!email) return alert('Bitte geben Sie Ihre E-Mail-Adresse ein')
 
     // Simple email format check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return alert('Please enter a valid email address')
+      return alert('Bitte geben Sie eine gültige E-Mail-Adresse ein')
     }
 
-    setStatus('Uploading photo...')
+    setStatus('Foto wird hochgeladen...')
     setProgress(5)
 
     // Extract base64 from data URI (format: data:image/jpeg;base64,BASE64_DATA)
     const b64 = photo.split(',')[1]
-    if (!b64) return setStatus('Failed to encode photo')
+    if (!b64) return setStatus('Fehler beim Codieren des Fotos')
     
     console.log('Uploading with filename:', `photo-${Date.now()}.jpg`, 'b64 length:', b64.length)
     
@@ -162,14 +162,14 @@ export default function CameraCapture() {
       const uploadData = await uploadResp.json()
       if (!uploadData?.ok) {
         console.error('Upload failed:', uploadData)
-        return setStatus('Failed to upload photo: ' + (uploadData?.error || 'unknown'))
+        return setStatus('Fehler beim Hochladen des Fotos: ' + (uploadData?.error || 'unbekannt'))
       }
       photoUrl = uploadData.publicUrl
-      setStatus('Photo uploaded! Starting video generation...')
+      setStatus('Foto hochgeladen! Videogenerierung wird gestartet...')
       setProgress(10)
     } catch (uploadErr: any) {
       console.error('Upload error:', uploadErr)
-      return setStatus('Failed to upload photo: ' + (uploadErr.message || 'connection error'))
+      return setStatus('Fehler beim Hochladen des Fotos: ' + (uploadErr.message || 'Verbindungsfehler'))
     }
 
     // Start background processing pipeline
@@ -181,11 +181,11 @@ export default function CameraCapture() {
       })
       const startData = await startResp.json()
       if (!startResp.ok || !startData?.ok || !startData?.leadId) {
-        return setStatus('Failed to start processing: ' + (startData?.error || 'unknown'))
+        return setStatus('Prozessstart fehlgeschlagen: ' + (startData?.error || 'unbekannt'))
       }
 
       const leadId = startData.leadId
-      setStatus('🎥 Creating video in the background! You can close this window now — we will email the video once it is ready.')
+      setStatus('🎥 Video wird im Hintergrund erstellt! Sie können dieses Fenster jetzt schließen – wir senden Ihnen das Video per E-Mail, sobald es bereit ist.')
       setProgress(15)
 
       // Simulate UI progress bar while polling
@@ -206,12 +206,12 @@ export default function CameraCapture() {
             clearInterval(pollInterval)
             setOverlayUrl(s.videoUrl)
             setProgress(100)
-            setStatus('✅ Video ready & email sent! Check your inbox.')
+            setStatus('✅ Video bereit & E-Mail gesendet! Überprüfen Sie Ihren Posteingang.')
             setEmailSent(true)
           } else if (s.status === 'failed') {
             clearInterval(progressInterval)
             clearInterval(pollInterval)
-            setStatus('❌ Video generation failed. Please try again with a different photo.')
+            setStatus('❌ Videogenerierung fehlgeschlagen. Bitte versuchen Sie es mit einem anderen Foto erneut.')
           }
         } catch (pollErr) {
           console.error('Polling error:', pollErr)
@@ -220,7 +220,7 @@ export default function CameraCapture() {
 
     } catch (err: any) {
       console.error('Start process error:', err)
-      setStatus('Failed to start process: ' + (err.message || 'connection error'))
+      setStatus('Prozessstart fehlgeschlagen: ' + (err.message || 'Verbindungsfehler'))
     }
   }
 
@@ -244,21 +244,21 @@ export default function CameraCapture() {
             {!cameraStarted ? (
               <>
                 <button onClick={() => startCamera('environment')} className="btn btn-primary">
-                  Take Photo of your Friend
+                  Foto von Ihrem Freund machen
                 </button>
                 <label className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--brand-neutral)', color: 'var(--brand-dark)' }}>
-                  Upload your Photo
+                  Ihr Foto hochladen
                   <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                 </label>
               </>
             ) : (
               <>
-                <button onClick={takePhoto} className="btn btn-primary">Take Photo</button>
+                <button onClick={takePhoto} className="btn btn-primary">Foto aufnehmen</button>
                 <button onClick={() => {
                   const stream = videoRef.current?.srcObject as MediaStream | null
                   if (stream) stream.getTracks().forEach(track => track.stop())
                   setCameraStarted(false)
-                }} className="btn btn-primary" style={{ background: '#e5e9f0', color: 'var(--brand-dark)' }}>Cancel</button>
+                }} className="btn btn-primary" style={{ background: '#e5e9f0', color: 'var(--brand-dark)' }}>Abbrechen</button>
               </>
             )}
           </div>
@@ -274,7 +274,7 @@ export default function CameraCapture() {
         {/* ── Selected Photo Preview ── */}
         {photo && (
           <div className="preview-wrap">
-            <p className="section-label">Your Photo</p>
+            <p className="section-label">Ihr Foto</p>
             <div className="preview-avatar">
               <img src={photo} alt="Your photo" />
             </div>
@@ -283,19 +283,19 @@ export default function CameraCapture() {
 
         {/* ── Email Input ── */}
         <div className="form-block">
-          <label>Your email</label>
+          <label>Ihre E-Mail-Adresse</label>
           <input
             className="input"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') submitJob() }}
-            placeholder="you@example.com"
+            placeholder="ihre-email@beispiel.de"
           />
         </div>
 
         {/* ── CTA ── */}
-        <button onClick={submitJob} className="cta">Create Video &amp; Preview</button>
+        <button onClick={submitJob} className="cta">Video erstellen &amp; Vorschau</button>
 
         {/* ── Progress ── */}
         <div className="progress-track">
@@ -307,7 +307,7 @@ export default function CameraCapture() {
         {/* ── Result Preview ── */}
         {overlayUrl && (
           <div className="result-preview">
-            <p className="section-label">Preview result</p>
+            <p className="section-label">Vorschau des Ergebnisses</p>
             <video src={overlayUrl} controls playsInline />
             <div className="result-actions" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <a 
@@ -323,9 +323,9 @@ export default function CameraCapture() {
                   color: 'var(--brand-dark)' 
                 }}
               >
-                Download Video
+                Video herunterladen
               </a>
-              <a href={overlayUrl} target="_blank" rel="noreferrer" className="btn-link">Open in new tab</a>
+              <a href={overlayUrl} target="_blank" rel="noreferrer" className="btn-link">In neuem Tab öffnen</a>
             </div>
           </div>
         )}
@@ -368,12 +368,12 @@ export default function CameraCapture() {
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
             </div>
-            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--brand-dark)' }}>Email Sent!</h3>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--brand-dark)' }}>E-Mail gesendet!</h3>
             <p style={{ margin: 0, fontSize: '14px', color: 'rgba(11, 11, 18, 0.7)', lineHeight: 1.5 }}>
-              Check your inbox (or spam folder). Your custom DoctorABC world cup video is on its way!
+              Überprüfen Sie Ihren Posteingang (oder Spam-Ordner). Ihr persönliches DoctorABC-Weltmeisterschaftsvideo ist auf dem Weg!
             </p>
             <button onClick={() => setEmailSent(false)} className="btn btn-primary" style={{ marginTop: '10px', width: '100%' }}>
-              Great, thank you!
+              Großartig, danke!
             </button>
           </div>
         </div>

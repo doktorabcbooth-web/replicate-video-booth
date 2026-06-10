@@ -40,16 +40,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             <div class="logo-header">
               <img src="https://res.cloudinary.com/do4hqtjxb/image/upload/v1780067385/doktorabc-logo_uwqswp.svg" alt="DoctorABC Logo">
             </div>
-            <h1>Be the star of the world cup and share the goal you scored with DoctorABC!</h1>
+            <h1>Seien Sie der Star der Weltmeisterschaft und teilen Sie das Tor, das Sie mit DoctorABC geschossen haben!</h1>
             <div class="video-preview">
               <a href="${videoUrl}">
                 <!-- Using a high-quality sports pitch background thumbnail since video can't autoplay inside mail client -->
                 <img src="https://res.cloudinary.com/do4hqtjxb/image/upload/v1779910689/Icon_uu7a2w.png" alt="Your Football Video Goal" style="max-height: 220px; object-fit: contain; background: #000; margin: 0 auto;">
               </a>
             </div>
-            <a href="${videoUrl}" class="btn">Get your video</a>
+            <a href="${videoUrl}" class="btn">Video abrufen</a>
             <br/>
-            <a href="${downloadUrl}" class="btn" style="background: #0D2C54; margin-top: 10px; box-shadow: 0 4px 15px rgba(13, 44, 84, 0.15);">Download video</a>
+            <a href="${downloadUrl}" class="btn" style="background: #0D2C54; margin-top: 10px; box-shadow: 0 4px 15px rgba(13, 44, 84, 0.15);">Video herunterladen</a>
             <div class="footer">
               &copy; ${new Date().getFullYear()} DoctorABC. All rights reserved.
             </div>
@@ -69,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const r = await resend.emails.send({
       from: process.env.EMAIL_FROM || 'yourvideo@doktorabcworldcup.com',
       to,
-      subject: 'Start your journey to a better health',
+      subject: 'Beginnen Sie Ihre Reise zu einer besseren Gesundheit',
       html: emailHtml,
     })
     res.status(200).json({ ok: true, result: r })

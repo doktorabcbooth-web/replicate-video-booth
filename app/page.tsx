@@ -13,8 +13,8 @@ export default function Home() {
           />
           <div className="logo-text">DOKTORABC</div>
         </div>
-        <h1 className="title">Video Booth</h1>
-        <p className="subtitle">Upload a photo of yourself or take a photo of your friend to generate your football moment.</p>
+        <h1 className="title">Video-Booth</h1>
+        <p className="subtitle">Laden Sie ein Foto von sich selbst hoch oder machen Sie ein Foto von Ihrem Freund, um Ihren Fußball-Moment zu generieren.</p>
       </div>
 
       <CameraCapture />
