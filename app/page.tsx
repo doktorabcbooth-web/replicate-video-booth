@@ -13,11 +13,11 @@ export default function Home() {
           />
           <div className="logo-text">DOKTORABC</div>
         </div>
-        <h1 className="title">⚽️ Video-Booth 🏆</h1>
+        <h1 className="title">⚽️ Gewinne ein iPhone 17 Pro Max 🏆</h1>
         <div className="marquee-container">
           <div className="marquee-content">
-            <span className="marquee-text">⚽️🏆📱 Erstelle ein KI-Video von dir und gewinne ein iPhone 17 Pro Max! ⚽️🏆📱</span>
-            <span className="marquee-text">⚽️🏆📱 Erstelle ein KI-Video von dir und gewinne ein iPhone 17 Pro Max! ⚽️🏆📱</span>
+            <span className="marquee-text">⚽️🏆📱 Lade ein Foto hoch, erhalte dein Video und die Chance auf den Hauptgewinn! ⚽️🏆📱</span>
+            <span className="marquee-text">⚽️🏆📱 Lade ein Foto hoch, erhalte dein Video und die Chance auf den Hauptgewinn! ⚽️🏆📱</span>
           </div>
         </div>
       </div>
