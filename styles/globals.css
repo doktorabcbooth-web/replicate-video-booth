@@ -40,7 +40,7 @@ html, body {
 body {
   min-height: 100vh;
   font-family: 'Poppins', system-ui, sans-serif;
-  background: linear-gradient(180deg, var(--brand-light-2) 0%, #dff8f1 100%);
+  background: linear-gradient(180deg, var(--brand-teal) 0%, var(--brand-teal-2) 100%);
   color: var(--brand-dark);
   display: grid;
   place-items: center;
