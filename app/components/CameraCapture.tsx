@@ -131,22 +131,57 @@ export default function CameraCapture() {
   const [progress, setProgress] = useState<number>(0)
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
-  // ── Simple Emoji Math CAPTCHA ──
-  const [captchaA, setCaptchaA] = useState(0)
-  const [captchaB, setCaptchaB] = useState(0)
-  const [captchaAnswer, setCaptchaAnswer] = useState('')
+  // ── Quiz CAPTCHA ──
+  type QuizQuestion = {
+    question: string
+    options: string[]
+    answer: string
+  }
+
+  const quizPool: QuizQuestion[] = [
+    { question: 'Welches Emoji passt nicht zu den anderen?', options: ['🍎', '🍌', '🍇', '🧦'], answer: '🧦' },
+    { question: 'Welches Emoji passt nicht zu den anderen?', options: ['🌧️', '☂️', '🍰', '🌧️'], answer: '🍰' },
+    { question: 'Klicke auf den Vogel.', options: ['🐱', '🐦', '🐶', '🐸'], answer: '🐦' },
+    { question: 'Klicke auf das Musikinstrument.', options: ['🎸', '🧢', '👟', '🧱'], answer: '🎸' },
+    { question: 'Welche Farbe hat typischerweise Gras?', options: ['🟥 Rot', '🟩 Grün', '⬛ Schwarz'], answer: '🟩 Grün' },
+    { question: 'Welche Farbe hat ein klassischer Feuerwehrwagen?', options: ['🟦 Blau', '🟥 Rot', '🟨 Gelb'], answer: '🟥 Rot' },
+    { question: 'Was kommt als Nächstes? 2 → 4 → 6 → ?', options: ['7', '8', '10', '5'], answer: '8' },
+    { question: 'Welche Zahl fehlt? 5, 4, 3, 2, ?', options: ['0', '1', '3', '6'], answer: '1' },
+    { question: 'Bitte wähle das Tier aus:', options: ['Tisch', 'Lampe', 'Hund', 'Stuhl'], answer: 'Hund' },
+    { question: 'Bitte wähle das Getränk aus:', options: ['Wasser', 'Schuhe', 'Fenster', 'Kabel'], answer: 'Wasser' },
+    { question: 'Welches ist kein Obst?', options: ['🍓', '🍍', '🍊', '🧀'], answer: '🧀' },
+    { question: 'Welches ist kein Tier?', options: ['🐭', '🐘', '🥕', '🐼'], answer: '🥕' },
+    { question: 'Welches davon ist kein Festival-Accessoire?', options: ['🎧', '🎫', '🎵', '🧻'], answer: '🧻' },
+    { question: 'Welche der folgenden Optionen ist ein Wochentag?', options: ['Juli', 'Montag', 'Winter', '2026'], answer: 'Montag' },
+    { question: 'Bitte wähle die Stadt aus:', options: ['Banane', 'Auto', 'Berlin', 'Katze'], answer: 'Berlin' },
+    { question: 'Welcher Pfeil zeigt nach oben?', options: ['⬅️', '⬆️', '➡️', '⬇️'], answer: '⬆️' },
+    { question: 'Welche dieser Optionen ist eine Tageszeit?', options: ['Morgen', 'Banane', 'Tisch', 'Regen'], answer: 'Morgen' },
+    { question: 'Welche Form hat drei Seiten?', options: ['⚪ Kreis', '🔺 Dreieck', '⬛ Quadrat'], answer: '🔺 Dreieck' },
+    { question: 'Welche Gruppe enthält genau drei Symbole?', options: ['😀 😀', '😀 😀 😀', '😀 😀 😀 😀'], answer: '😀 😀 😀' },
+    { question: 'Welche Option beschreibt etwas, das man essen kann?', options: ['Wolke', 'Stein', 'Brot', 'Schuhe'], answer: 'Brot' },
+  ]
+
+  const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>([])
+  const [selectedAnswers, setSelectedAnswers] = useState<(string | null)[]>([null, null])
   const [captchaError, setCaptchaError] = useState(false)
 
   const generateCaptcha = useCallback(() => {
-    const a = Math.floor(Math.random() * 9) + 1
-    const b = Math.floor(Math.random() * 9) + 1
-    setCaptchaA(a)
-    setCaptchaB(b)
-    setCaptchaAnswer('')
+    const shuffled = [...quizPool].sort(() => Math.random() - 0.5)
+    setActiveQuestions([shuffled[0], shuffled[1]])
+    setSelectedAnswers([null, null])
     setCaptchaError(false)
   }, [])
 
   useEffect(() => { generateCaptcha() }, [generateCaptcha])
+
+  function selectAnswer(questionIndex: number, option: string) {
+    setSelectedAnswers(prev => {
+      const next = [...prev]
+      next[questionIndex] = option
+      return next
+    })
+    setCaptchaError(false)
+  }
 
   async function submitJob() {
     if (!photo) return alert('Bitte machen oder laden Sie zuerst ein Foto hoch')
@@ -158,8 +193,12 @@ export default function CameraCapture() {
       return alert('Bitte geben Sie eine gültige E-Mail-Adresse ein')
     }
 
-    // CAPTCHA check
-    if (parseInt(captchaAnswer, 10) !== captchaA + captchaB) {
+    // CAPTCHA check – both questions must be answered correctly
+    if (
+      activeQuestions.length < 2 ||
+      selectedAnswers[0] !== activeQuestions[0].answer ||
+      selectedAnswers[1] !== activeQuestions[1].answer
+    ) {
       setCaptchaError(true)
       generateCaptcha()
       return
@@ -318,31 +357,33 @@ export default function CameraCapture() {
           />
         </div>
 
-        {/* ── CAPTCHA ── */}
+        {/* ── CAPTCHA Quiz ── */}
         <div className="captcha-block">
-          <label className="captcha-label">Sicherheitsfrage</label>
-          <div className="captcha-challenge">
-            <span className="captcha-emoji">⚽</span>
-            <span className="captcha-num">{captchaA}</span>
-            <span className="captcha-op">+</span>
-            <span className="captcha-emoji">🏆</span>
-            <span className="captcha-num">{captchaB}</span>
-            <span className="captcha-op">=</span>
-            <input
-              className="captcha-input"
-              type="number"
-              inputMode="numeric"
-              value={captchaAnswer}
-              onChange={(e) => { setCaptchaAnswer(e.target.value); setCaptchaError(false) }}
-              onKeyDown={(e) => { if (e.key === 'Enter') submitJob() }}
-              placeholder="?"
-            />
-            <button type="button" className="captcha-refresh" onClick={generateCaptcha} title="Neue Aufgabe">
+          <div className="captcha-header">
+            <label className="captcha-label">🛡️ Sicherheitsfragen</label>
+            <button type="button" className="captcha-refresh" onClick={generateCaptcha} title="Neue Fragen">
               ↻
             </button>
           </div>
+          {activeQuestions.map((q, qi) => (
+            <div key={qi} className="captcha-quiz">
+              <p className="captcha-question">{q.question}</p>
+              <div className="captcha-options">
+                {q.options.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    className={`captcha-opt${selectedAnswers[qi] === opt ? ' selected' : ''}`}
+                    onClick={() => selectAnswer(qi, opt)}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
           {captchaError && (
-            <p className="captcha-error">Falsche Antwort – bitte versuche es erneut.</p>
+            <p className="captcha-error">❌ Falsche Antwort – bitte versuche es erneut.</p>
           )}
         </div>
 
