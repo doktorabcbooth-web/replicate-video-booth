@@ -206,9 +206,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const upload = await cloudinary.uploader.upload(outputUrl, { resource_type: 'video' })
       const videoPublicId = upload.public_id
 
-      // Apply Logo overlay
+      // Apply Logo overlay (no overlay version)
       const CLOUDINARY_CLOUD = process.env.CLOUDINARY_CLOUD_NAME || ''
-      const finalUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/video/upload/w_720,h_1280,c_fill/l_doktorabc-logo_uwqswp,w_210,h_60,c_pad,b_white,r_max,g_south,y_50/${videoPublicId}.mp4`
+      const finalUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/video/upload/w_720,h_1280,c_fill/${videoPublicId}.mp4`
 
       console.log(`Cloudinary overlay generated: ${finalUrl}`)
 

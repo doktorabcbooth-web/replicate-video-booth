@@ -185,7 +185,7 @@ export default function CameraCapture() {
       }
 
       const leadId = startData.leadId
-      setStatus('🎥 Video wird im Hintergrund erstellt! Sie können dieses Fenster jetzt schließen – wir senden Ihnen das Video per E-Mail, sobald es bereit ist.')
+      setStatus('🎥 Video wird im Hintergrund erstellt! Du kannst dieses Fenster jetzt schließen – wir senden dir das Video per E-Mail in 2 bis 5 Minuten zu.')
       setProgress(15)
 
       // Simulate UI progress bar while polling
