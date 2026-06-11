@@ -126,6 +126,7 @@ export default function CameraCapture() {
     e.target.value = ''
   }
 
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [progress, setProgress] = useState<number>(0)
@@ -185,6 +186,7 @@ export default function CameraCapture() {
 
   async function submitJob() {
     if (!photo) return alert('Bitte machen oder laden Sie zuerst ein Foto hoch')
+    if (!name.trim()) return alert('Bitte geben Sie Ihren Namen ein')
     if (!email) return alert('Bitte geben Sie Ihre E-Mail-Adresse ein')
 
     // Simple email format check
@@ -240,7 +242,7 @@ export default function CameraCapture() {
       const startResp = await fetch('/api/start-process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: photoUrl, email })
+        body: JSON.stringify({ imageUrl: photoUrl, email, name: name.trim() })
       })
       const startData = await startResp.json()
       if (!startResp.ok || !startData?.ok || !startData?.leadId) {
@@ -343,6 +345,18 @@ export default function CameraCapture() {
             </div>
           </div>
         )}
+
+        {/* ── Name Input ── */}
+        <div className="form-block">
+          <label>Ihr Name</label>
+          <input
+            className="input"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Max Mustermann"
+          />
+        </div>
 
         {/* ── Email Input ── */}
         <div className="form-block">
