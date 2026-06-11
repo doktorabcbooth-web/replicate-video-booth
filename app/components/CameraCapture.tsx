@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 
 export default function CameraCapture() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -131,6 +131,23 @@ export default function CameraCapture() {
   const [progress, setProgress] = useState<number>(0)
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null)
 
+  // ── Simple Emoji Math CAPTCHA ──
+  const [captchaA, setCaptchaA] = useState(0)
+  const [captchaB, setCaptchaB] = useState(0)
+  const [captchaAnswer, setCaptchaAnswer] = useState('')
+  const [captchaError, setCaptchaError] = useState(false)
+
+  const generateCaptcha = useCallback(() => {
+    const a = Math.floor(Math.random() * 9) + 1
+    const b = Math.floor(Math.random() * 9) + 1
+    setCaptchaA(a)
+    setCaptchaB(b)
+    setCaptchaAnswer('')
+    setCaptchaError(false)
+  }, [])
+
+  useEffect(() => { generateCaptcha() }, [generateCaptcha])
+
   async function submitJob() {
     if (!photo) return alert('Bitte machen oder laden Sie zuerst ein Foto hoch')
     if (!email) return alert('Bitte geben Sie Ihre E-Mail-Adresse ein')
@@ -139,6 +156,13 @@ export default function CameraCapture() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return alert('Bitte geben Sie eine gültige E-Mail-Adresse ein')
+    }
+
+    // CAPTCHA check
+    if (parseInt(captchaAnswer, 10) !== captchaA + captchaB) {
+      setCaptchaError(true)
+      generateCaptcha()
+      return
     }
 
     setStatus('Foto wird hochgeladen...')
@@ -292,6 +316,34 @@ export default function CameraCapture() {
             onKeyDown={(e) => { if (e.key === 'Enter') submitJob() }}
             placeholder="ihre-email@beispiel.de"
           />
+        </div>
+
+        {/* ── CAPTCHA ── */}
+        <div className="captcha-block">
+          <label className="captcha-label">Sicherheitsfrage</label>
+          <div className="captcha-challenge">
+            <span className="captcha-emoji">⚽</span>
+            <span className="captcha-num">{captchaA}</span>
+            <span className="captcha-op">+</span>
+            <span className="captcha-emoji">🏆</span>
+            <span className="captcha-num">{captchaB}</span>
+            <span className="captcha-op">=</span>
+            <input
+              className="captcha-input"
+              type="number"
+              inputMode="numeric"
+              value={captchaAnswer}
+              onChange={(e) => { setCaptchaAnswer(e.target.value); setCaptchaError(false) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitJob() }}
+              placeholder="?"
+            />
+            <button type="button" className="captcha-refresh" onClick={generateCaptcha} title="Neue Aufgabe">
+              ↻
+            </button>
+          </div>
+          {captchaError && (
+            <p className="captcha-error">Falsche Antwort – bitte versuche es erneut.</p>
+          )}
         </div>
 
         {/* ── CTA ── */}
