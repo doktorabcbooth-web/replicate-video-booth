@@ -242,7 +242,7 @@ export default function CameraCapture() {
       const startResp = await fetch('/api/start-process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: photoUrl, email, name: name.trim() })
+        body: JSON.stringify({ imageUrl: photoUrl, email })
       })
       const startData = await startResp.json()
       if (!startResp.ok || !startData?.ok || !startData?.leadId) {

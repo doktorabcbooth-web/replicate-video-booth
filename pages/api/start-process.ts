@@ -16,7 +16,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') return res.status(405).end()
-  const { imageUrl, email, name } = req.body
+  const { imageUrl, email } = req.body
 
   if (!imageUrl) return res.status(400).json({ error: 'missing imageUrl' })
   if (!email) return res.status(400).json({ error: 'missing email' })
@@ -27,7 +27,7 @@ export default async function handler(
     try {
       const { data, error: dbError } = await supabase
         .from('leads')
-        .insert([{ email, name: name || null, video_url: 'processing' }])
+        .insert([{ email, video_url: 'processing' }])
         .select()
 
       if (dbError || !data || data.length === 0) {
